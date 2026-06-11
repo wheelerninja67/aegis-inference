@@ -58,17 +58,23 @@ fn main() {
                 input_vector[i] = ((i % 3) as i8) - 1;
             }
 
-            // NOTE: We cannot directly pass `_tensor_slice` (which is u8) to our AVX2 
-            // function (which currently expects i8) without an unsafe cast. 
-            // For the physics proof, we transmute the zero-copy pointer.
-            let tensor_ptr = _tensor_slice.as_ptr() as *const i8;
-            let tensor_i8_slice = unsafe { std::slice::from_raw_parts(tensor_ptr, required_bytes) };
+            // Parse physical tensor properties based on standard GGUF memory alignment
+            let tensor_slice = &_tensor_slice[0..required_bytes];
             
-            // Re-use our TernaryTensor structure for the AVX2 logic
+            // Safety: Bypassing Rust's standard borrow checker to physically reinterpret
+            // memory pointers from u8 directly to i8 (representing -1, 0, 1 ternary state)
+            let tensor_i8_slice: &[i8] = unsafe {
+                std::slice::from_raw_parts(
+                    tensor_slice.as_ptr() as *const i8,
+                    tensor_slice.len(),
+                )
+            };
+
             let tensor_view = aegis_inference::TernaryTensor {
-                rows,
-                cols,
-                data: tensor_i8_slice.to_vec(), // In V0.3 we will avoid this clone
+                rows: 1024,
+                cols: 4096,
+                weights: tensor_i8_slice.to_vec(), // In V0.3 we will avoid this clone
+                scale: 1.0, // V5: Default scale factor to restore standard magnitude
             };
 
             println!("[*] Injecting Zero-Copy slice into AVX2 Hardware Vectorizer...");

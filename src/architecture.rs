@@ -130,8 +130,7 @@ impl TransformerBlock {
 }
 
 /// The physical memory buffer that stores past context.
-/// Without this, the engine would have to recalculate the entire conversation 
-/// every single time it generates a new token.
+/// V5 Upgrade: Sliding Window (Ring Buffer) Memory.
 pub struct KvCache {
     pub keys: Vec<f32>,
     pub values: Vec<f32>,
@@ -153,13 +152,12 @@ impl KvCache {
     }
 
     /// Appends a newly computed Key and Value vector into the memory buffer.
+    /// V5 Ring Buffer: If context window is full, overwrite the oldest token (index 0).
     pub fn update(&mut self, new_k: &[f32], new_v: &[f32]) {
-        if self.current_seq_len >= self.max_seq_len {
-            // In a production system, we'd implement a sliding window or eviction policy here.
-            panic!("KV Cache overflow: Context window exceeded.");
-        }
+        // Calculate the physical index via modulo arithmetic to loop the buffer
+        let physical_index = self.current_seq_len % self.max_seq_len;
+        let offset = physical_index * self.head_dim;
         
-        let offset = self.current_seq_len * self.head_dim;
         self.keys[offset..offset + self.head_dim].copy_from_slice(new_k);
         self.values[offset..offset + self.head_dim].copy_from_slice(new_v);
         
