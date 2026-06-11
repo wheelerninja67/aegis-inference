@@ -129,16 +129,66 @@ impl TransformerBlock {
     }
 }
 
+/// The physical memory buffer that stores past context.
+/// Without this, the engine would have to recalculate the entire conversation 
+/// every single time it generates a new token.
+pub struct KvCache {
+    pub keys: Vec<f32>,
+    pub values: Vec<f32>,
+    pub max_seq_len: usize,
+    pub head_dim: usize,
+    pub current_seq_len: usize,
+}
+
+impl KvCache {
+    /// Allocates the memory buffer for the KV Cache based on the maximum context window.
+    pub fn new(max_seq_len: usize, head_dim: usize) -> Self {
+        Self {
+            keys: vec![0.0; max_seq_len * head_dim],
+            values: vec![0.0; max_seq_len * head_dim],
+            max_seq_len,
+            head_dim,
+            current_seq_len: 0,
+        }
+    }
+
+    /// Appends a newly computed Key and Value vector into the memory buffer.
+    pub fn update(&mut self, new_k: &[f32], new_v: &[f32]) {
+        if self.current_seq_len >= self.max_seq_len {
+            // In a production system, we'd implement a sliding window or eviction policy here.
+            panic!("KV Cache overflow: Context window exceeded.");
+        }
+        
+        let offset = self.current_seq_len * self.head_dim;
+        self.keys[offset..offset + self.head_dim].copy_from_slice(new_k);
+        self.values[offset..offset + self.head_dim].copy_from_slice(new_v);
+        
+        self.current_seq_len += 1;
+    }
+}
+
 /// The monolithic LLM Engine that ties all the physics together.
 pub struct AegisEngine {
     pub layers: Vec<TransformerBlock>,
     pub mmap_payload: Vec<u8>, // Reference to the zero-copy SSD map
+    pub kv_cache: KvCache,     // V2 Architectural Upgrade: Context Memory
 }
 
 impl AegisEngine {
+    /// Initializes the V2 Engine with a persistent KV Cache buffer.
+    pub fn new(mmap_payload: Vec<u8>, layers: Vec<TransformerBlock>, context_window: usize) -> Self {
+        Self {
+            layers,
+            mmap_payload,
+            kv_cache: KvCache::new(context_window, 128), // Assuming 128 head_dim
+        }
+    }
+
     /// The primary Inference Loop. 
-    /// This takes a single token, runs it through all layers, and outputs the next token.
-    pub fn generate_token(&self, input_token: u32, pos: usize) -> u32 {
+    /// This takes a single token, runs it through all layers, caches the state, and outputs the next token.
+    pub fn generate_token(&mut self, input_token: u32) -> u32 {
+        let pos = self.kv_cache.current_seq_len;
+        
         // In a real pass, we fetch the 4096-dim embedding for the token.
         let mut hidden_state = vec![0.0f32; 4096]; 
 
@@ -147,9 +197,15 @@ impl AegisEngine {
             layer.forward(&mut hidden_state, &self.mmap_payload, pos);
         }
 
+        // V2 Update: Simulate saving the computed keys/values to the cache
+        let dummy_k = vec![0.0f32; 128];
+        let dummy_v = vec![0.0f32; 128];
+        self.kv_cache.update(&dummy_k, &dummy_v);
+
         // Final Layer Norm & LM Head projection goes here to get logits.
         // compute_softmax(&mut logits);
         
+        // Return next token
         input_token + 1
     }
 }
