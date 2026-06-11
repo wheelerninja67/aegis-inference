@@ -99,8 +99,27 @@ fn main() {
             let sum: f32 = float_logits.iter().sum();
             println!("[+] Mathematical Verification: Total Probability Sum = {:.4}", sum);
 
+            // Phase 6: Byte-Pair Encoding (BPE) Tokenization
             println!("\n============================================================");
-            println!("[+] SYSTEM STATUS: AEGIS ARCHITECTURE V0.3 FULLY OPERATIONAL.");
+            println!("  PHASE 6: BPE TOKENIZER (ENGLISH TO MATH)");
+            println!("============================================================");
+            
+            let mut tokenizer = aegis_inference::tokenizer::BpeTokenizer::new();
+            if let Err(e) = tokenizer.load_vocabulary("models/vocab.txt") {
+                println!("[-] Failed to load vocab: {}", e);
+            } else {
+                let human_input = "the matrix has you neo !";
+                println!("[*] Human Input String: \"{}\"", human_input);
+                
+                let math_tokens = tokenizer.encode(human_input);
+                println!("[+] Mathematical Token Encoding: {:?}", math_tokens);
+                
+                let decoded_string = tokenizer.decode(&math_tokens);
+                println!("[+] Engine Decoded Output: \"{}\"", decoded_string);
+            }
+
+            println!("\n============================================================");
+            println!("[+] SYSTEM STATUS: AEGIS ARCHITECTURE V0.4 FULLY OPERATIONAL.");
             println!("============================================================");
         }
         Err(e) => {

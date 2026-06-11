@@ -2,6 +2,7 @@
 
 pub mod architecture;
 pub mod gguf_parser;
+pub mod tokenizer;
 
 use std::arch::x86_64::*;
 
