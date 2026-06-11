@@ -1,6 +1,7 @@
 #![feature(portable_simd)]
 
 pub mod architecture;
+pub mod gguf_parser;
 
 use std::arch::x86_64::*;
 
