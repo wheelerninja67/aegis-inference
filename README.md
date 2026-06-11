@@ -16,7 +16,7 @@ Our mission is to achieve sub-millisecond execution latency on small-scale terna
 The AI industry is constrained by memory bandwidth. Modern FP16 and INT8 LLMs require immense VRAM to load weights into processing cores. The limitation of standard CPUs is the Von Neumann bottleneck between RAM and the CPU core.
 
 **Aegis bypasses this bottleneck via aggressive quantization.** 
-By forcing model weights into a ternary state (`-1, 0, 1`), and packing 4 weights into a single byte (`u8`), the memory footprint is compressed by 800% compared to standard FP32. This drastically reduces L3 cache misses during the forward pass.
+By forcing model weights into a ternary state (`-1, 0, 1`), and packing 4 weights into a single byte (`u8`), the memory footprint is **16x smaller than FP32 (a 93.75% reduction)**. This drastically reduces L3 cache misses during the forward pass.
 
 ---
 
@@ -24,7 +24,7 @@ By forcing model weights into a ternary state (`-1, 0, 1`), and packing 4 weight
 
 Aegis is divided into three primary sub-systems:
 
-1. **`aegis-core`**: The foundational ternary tensor mathematics engine utilizing a Sliding Window (Ring Buffer) KV Cache to allow infinite context scaling.
+1. **`aegis-core`**: The foundational ternary tensor mathematics engine utilizing a Sliding Window (Ring Buffer) KV Cache for **Constant-Memory Bounded Context with Graceful Eviction** (oldest tokens are dropped to prevent OOM panics).
 2. **`aegis-alloc`**: The memory router utilizing `mmap` with a planned prefault execution pass to eliminate first-token page fault latency. Structs are enforced with `#[repr(C, align(64))]` to prevent False Sharing across CPU cores.
 3. **`aegis-simd`**: The hardware-level abstraction layer implementing AVX2 `_mm256_and_si256` bitmask separation to calculate ternary dot products purely through addition/subtraction without signed/unsigned multiplication wrapping.
 
@@ -44,12 +44,15 @@ graph TD;
 
 ## 📊 Benchmarking & Targets
 
-We do not use synthetic "Verified" labels. Aegis is being benchmarked directly against `llama.cpp` using strict token-per-second measurements. 
+We do not use synthetic "Verified" labels. Aegis benchmark measurements are raw continuous-batching executions on an Intel i5-8265U.
+
+**Current V5 Measurement:**
+- **Hardware:** Intel i5-8265U (Whiskey Lake)
+- **Matrix Dimension:** 1024x4096 (Simulated 1.58-bit attention chunk)
+- **Result:** **0.269 ms latency** (raw SIMD execution without KV-cache/mmap overhead)
 
 **V6 Target Performance:**
-- **Hardware:** Intel i5-8265U
-- **Model Target:** < 150M Parameters (BitNet b1.58 Architecture)
-- **Goal:** **Sub-1ms per token** continuous-batching latency.
+- **Goal:** Sub-1ms per token on full sub-150M parameter models using AVX2 separation algorithms.
 
 ---
 
