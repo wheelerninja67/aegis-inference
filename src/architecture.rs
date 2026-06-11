@@ -167,46 +167,86 @@ impl KvCache {
     }
 }
 
+/// Represents an active inference request from a user.
+pub struct ActiveSequence {
+    pub id: u64,
+    pub current_token: u32,
+    pub kv_cache: KvCache,
+    pub is_finished: bool,
+}
+
 /// The monolithic LLM Engine that ties all the physics together.
+/// V3 Upgrade: Continuous Batching Engine
 pub struct AegisEngine {
     pub layers: Vec<TransformerBlock>,
-    pub mmap_payload: Vec<u8>, // Reference to the zero-copy SSD map
-    pub kv_cache: KvCache,     // V2 Architectural Upgrade: Context Memory
+    pub mmap_payload: Vec<u8>,
+    pub active_sequences: Vec<ActiveSequence>, // Pool of concurrent users
 }
 
 impl AegisEngine {
-    /// Initializes the V2 Engine with a persistent KV Cache buffer.
-    pub fn new(mmap_payload: Vec<u8>, layers: Vec<TransformerBlock>, context_window: usize) -> Self {
+    /// Initializes the V3 Engine with Continuous Batching support.
+    pub fn new(mmap_payload: Vec<u8>, layers: Vec<TransformerBlock>) -> Self {
         Self {
             layers,
             mmap_payload,
-            kv_cache: KvCache::new(context_window, 128), // Assuming 128 head_dim
+            active_sequences: Vec::new(),
         }
     }
 
-    /// The primary Inference Loop. 
-    /// This takes a single token, runs it through all layers, caches the state, and outputs the next token.
-    pub fn generate_token(&mut self, input_token: u32) -> u32 {
-        let pos = self.kv_cache.current_seq_len;
-        
-        // In a real pass, we fetch the 4096-dim embedding for the token.
-        let mut hidden_state = vec![0.0f32; 4096]; 
+    /// Submits a new user prompt into the continuous batching pool.
+    pub fn add_sequence(&mut self, seq_id: u64, initial_token: u32, context_window: usize) {
+        self.active_sequences.push(ActiveSequence {
+            id: seq_id,
+            current_token: initial_token,
+            kv_cache: KvCache::new(context_window, 128), // 128 head_dim assumption
+            is_finished: false,
+        });
+        println!("[+] Sequence {} injected into Continuous Batching Pool.", seq_id);
+    }
 
-        // Rip the token through every single transformer layer at lightspeed.
-        for layer in &self.layers {
-            layer.forward(&mut hidden_state, &self.mmap_payload, pos);
+    /// The V3 Continuous Batching Inference Loop.
+    /// Processes a single forward pass for ALL active users simultaneously.
+    pub fn step(&mut self) {
+        if self.active_sequences.is_empty() {
+            return;
         }
 
-        // V2 Update: Simulate saving the computed keys/values to the cache
-        let dummy_k = vec![0.0f32; 128];
-        let dummy_v = vec![0.0f32; 128];
-        self.kv_cache.update(&dummy_k, &dummy_v);
+        // Rayon parallelization across all active users
+        use rayon::prelude::*;
 
-        // Final Layer Norm & LM Head projection goes here to get logits.
-        // compute_softmax(&mut logits);
-        
-        // Return next token
-        input_token + 1
+        // We temporarily extract the active sequences to process them in parallel
+        // against the read-only memory map and transformer layers.
+        let mut sequences = std::mem::take(&mut self.active_sequences);
+
+        sequences.par_iter_mut().for_each(|seq| {
+            if seq.is_finished {
+                return;
+            }
+
+            let pos = seq.kv_cache.current_seq_len;
+            let mut hidden_state = vec![0.0f32; 4096]; 
+
+            // Rip the token through every layer
+            for layer in &self.layers {
+                layer.forward(&mut hidden_state, &self.mmap_payload, pos);
+            }
+
+            // Update individual KV Cache
+            let dummy_k = vec![0.0f32; 128];
+            let dummy_v = vec![0.0f32; 128];
+            seq.kv_cache.update(&dummy_k, &dummy_v);
+
+            // Simulate next token generation (e.g., reaching an EOS token stops it)
+            seq.current_token += 1;
+            
+            // Artificial stop condition for the PoC
+            if pos >= 10 {
+                seq.is_finished = true;
+            }
+        });
+
+        // Filter out finished sequences and restore active ones
+        self.active_sequences = sequences.into_iter().filter(|s| !s.is_finished).collect();
     }
 }
 

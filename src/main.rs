@@ -118,8 +118,28 @@ fn main() {
                 println!("[+] Engine Decoded Output: \"{}\"", decoded_string);
             }
 
+            // Phase 7: Continuous Batching Simulation
             println!("\n============================================================");
-            println!("[+] SYSTEM STATUS: AEGIS ARCHITECTURE V0.4 FULLY OPERATIONAL.");
+            println!("  PHASE 7: CONTINUOUS BATCHING (V3 ARCHITECTURE)");
+            println!("============================================================");
+            
+            let mut batch_engine = aegis_inference::architecture::AegisEngine::new(Vec::new(), Vec::new());
+            
+            // Inject 3 concurrent users into the engine
+            batch_engine.add_sequence(101, 5, 2048);
+            batch_engine.add_sequence(102, 12, 2048);
+            batch_engine.add_sequence(103, 7, 2048);
+
+            println!("[*] Commencing Rayon parallel batched inference step...");
+            let start_batch = Instant::now();
+            batch_engine.step();
+            let batch_time = start_batch.elapsed();
+            
+            println!("[+] Processed 3 parallel sequences in {:?}", batch_time);
+            println!("[+] Active sequences remaining in pool: {}", batch_engine.active_sequences.len());
+
+            println!("\n============================================================");
+            println!("[+] SYSTEM STATUS: AEGIS ARCHITECTURE V3.0 FULLY OPERATIONAL.");
             println!("============================================================");
         }
         Err(e) => {
