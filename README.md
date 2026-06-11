@@ -46,13 +46,14 @@ graph TD;
 
 We do not use synthetic "Verified" labels. Aegis benchmark measurements are raw continuous-batching executions on an Intel i5-8265U.
 
-**Current V5 Measurement:**
-- **Hardware:** Intel i5-8265U (Whiskey Lake)
-- **Matrix Dimension:** 1024x4096 (Simulated 1.58-bit attention chunk)
-- **Result:** **0.269 ms latency** (raw SIMD execution without KV-cache/mmap overhead)
+**Current V6 Benchmark (Intel i5-8265U):**
+- **Test Matrix:** 1024x4096 (~4.19M Parameters)
+- **Math Kernel:** Dual-Bitmask Separation Trick (Scalar Fallback)
+- **Measured Latency:** **7.9699 ms per token** (1000 pass average)
+- **Raw Throughput:** **125.47 Tokens / Second**
 
 **V6 Target Performance:**
-- **Goal:** Sub-1ms per token on full sub-150M parameter models using AVX2 separation algorithms.
+- **Goal:** Sub-1ms per token on full sub-150M parameter models by replacing the scalar bit-loop fallback with the raw `expand_bitmask_avx2` lookup table intrinsic.
 
 ---
 
