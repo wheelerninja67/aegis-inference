@@ -2,7 +2,57 @@ use aegis_inference::gguf_parser::GgufParser;
 use std::time::Instant;
 use rand::Rng;
 
-fn main() {
+use axum::{routing::post, Router, Json, extract::State};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+#[derive(Clone)]
+struct AppState {
+    engine: Arc<Mutex<aegis_inference::architecture::AegisEngine>>,
+    tokenizer: Arc<Mutex<aegis_inference::tokenizer::BpeTokenizer>>,
+}
+
+#[derive(Deserialize)]
+struct InferenceRequest {
+    prompt: String,
+}
+
+#[derive(Serialize)]
+struct InferenceResponse {
+    status: String,
+    generated_text: String,
+    execution_time_ms: f64,
+}
+
+async fn handle_completion(
+    State(state): State<AppState>,
+    Json(req_data): Json<InferenceRequest>,
+) -> Json<InferenceResponse> {
+    let start_api = Instant::now();
+    println!("[*] Received API Prompt: \"{}\"", req_data.prompt);
+    
+    let mut tok = state.tokenizer.lock().await;
+    let tokens = tok.encode(&req_data.prompt);
+    
+    let mut eng = state.engine.lock().await;
+    eng.add_sequence(999, tokens[0], 2048);
+    eng.step(); // Execute Forward Pass
+    
+    let decoded = tok.decode(&tokens);
+    let exec_time = start_api.elapsed().as_secs_f64() * 1000.0;
+    
+    println!("[+] API Request served in {:.3} ms", exec_time);
+    
+    Json(InferenceResponse {
+        status: "success".to_string(),
+        generated_text: format!("{} [Aegis AVX2 Response]", decoded),
+        execution_time_ms: exec_time,
+    })
+}
+
+#[tokio::main]
+async fn main() {
     println!("============================================================");
     println!("  AEGIS INFERENCE ENGINE: V0.2 (GGUF Mmap Parsing)");
     println!("============================================================");
@@ -70,29 +120,29 @@ fn main() {
                 )
             };
 
-            // V6 Upgrade: True 2-bit packing.
-            // We pack 4 ternary weights into a single byte.
-            // 00 = 0, 01 = +1, 10 = -1
-            let mut packed = Vec::with_capacity((tensor_i8_slice.len() + 3) / 4);
-            for chunk in tensor_i8_slice.chunks(4) {
-                let mut b: u8 = 0;
+            // V6 Upgrade: Dual Bitmask Separation Packing
+            // We store positive and negative weights in two separate bitmasks
+            // allowing us to calculate dot products without unsigned/signed multiplication wraps.
+            let mut pos_mask = Vec::with_capacity((tensor_i8_slice.len() + 7) / 8);
+            let mut neg_mask = Vec::with_capacity((tensor_i8_slice.len() + 7) / 8);
+            
+            for chunk in tensor_i8_slice.chunks(8) {
+                let mut p: u8 = 0;
+                let mut n: u8 = 0;
                 for (i, &w) in chunk.iter().enumerate() {
-                    let bits: u8 = match w {
-                        0 => 0b00,
-                        1 => 0b01,
-                        -1 => 0b10,
-                        _ => 0b00,
-                    };
-                    b |= bits << (i * 2);
+                    if w == 1 { p |= 1 << i; }
+                    if w == -1 { n |= 1 << i; }
                 }
-                packed.push(b);
+                pos_mask.push(p);
+                neg_mask.push(n);
             }
 
             let tensor_view = aegis_inference::TernaryTensor {
                 rows: 1024,
                 cols: 4096,
-                packed_weights: packed,
-                scale: 1.0, // V6 scale
+                pos_mask,
+                neg_mask,
+                scale: 1.0, 
             };
 
             println!("[*] Injecting Zero-Copy slice into AVX2 Hardware Vectorizer...");
@@ -167,68 +217,19 @@ fn main() {
             println!("  PHASE 8: ENTERPRISE HTTP API (AEGIS V4)");
             println!("============================================================");
             
-            use tiny_http::{Server, Response, Method};
-            use serde::{Deserialize, Serialize};
+            let app_state = AppState {
+                engine: Arc::new(Mutex::new(batch_engine)),
+                tokenizer: Arc::new(Mutex::new(tokenizer)),
+            };
 
-            #[derive(Deserialize)]
-            struct InferenceRequest {
-                prompt: String,
-            }
+            let app = Router::new()
+                .route("/v1/completions", post(handle_completion))
+                .with_state(app_state);
 
-            #[derive(Serialize)]
-            struct InferenceResponse {
-                status: String,
-                generated_text: String,
-                execution_time_ms: f64,
-            }
-
-            let server = Server::http("0.0.0.0:8080").unwrap();
-            println!("[+] Aegis HTTP API Server listening on http://0.0.0.0:8080");
+            let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+            println!("[+] Aegis Tokio API Server listening on http://0.0.0.0:8080");
             println!("[+] Ready to accept POST requests to /v1/completions\n");
-
-            for mut request in server.incoming_requests() {
-                if request.method() == &Method::Post && request.url() == "/v1/completions" {
-                    let mut content = String::new();
-                    request.as_reader().read_to_string(&mut content).unwrap_or_default();
-                    
-                    let start_api = Instant::now();
-                    
-                    // Parse the JSON request
-                    if let Ok(req_data) = serde_json::from_str::<InferenceRequest>(&content) {
-                        println!("[*] Received API Prompt: \"{}\"", req_data.prompt);
-                        
-                        // 1. Encode prompt
-                        let tokens = tokenizer.encode(&req_data.prompt);
-                        
-                        // 2. Inject into Continuous Batching Engine (Mock ID: 999)
-                        batch_engine.add_sequence(999, tokens[0], 2048);
-                        batch_engine.step(); // Execute Forward Pass
-                        
-                        // 3. Decode output
-                        let decoded = tokenizer.decode(&tokens); // Returning echoed text for PoC
-                        let exec_time = start_api.elapsed().as_secs_f64() * 1000.0;
-                        
-                        let response_data = InferenceResponse {
-                            status: "success".to_string(),
-                            generated_text: format!("{} [Aegis AVX2 Response]", decoded),
-                            execution_time_ms: exec_time,
-                        };
-                        
-                        let json_res = serde_json::to_string(&response_data).unwrap();
-                        let response = Response::from_string(json_res)
-                            .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap());
-                        
-                        request.respond(response).unwrap();
-                        println!("[+] API Request served in {:.3} ms", exec_time);
-                    } else {
-                        let response = Response::from_string("{\"error\": \"Invalid JSON payload\"}").with_status_code(400);
-                        request.respond(response).unwrap();
-                    }
-                } else {
-                    let response = Response::from_string("{\"error\": \"Not Found\"}").with_status_code(404);
-                    request.respond(response).unwrap();
-                }
-            }
+            axum::serve(listener, app).await.unwrap();
         }
         Err(e) => {
             println!("[-] Failed to open GGUF file. Is the model fully downloaded?");

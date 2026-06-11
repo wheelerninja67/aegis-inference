@@ -10,69 +10,74 @@ use std::arch::x86_64::*;
 /// Guarantees 64-byte alignment to prevent False Sharing across Rayon threads.
 #[repr(C, align(64))]
 pub struct AlignedWeightRow {
-    pub data: [u8; 64], // 64 bytes = one cache line = 256 ternary weights (at 2-bit packing)
+    pub data: [u8; 64],
     pub scale: f32,
-    _pad: [u8; 60],     // pad to next cache line boundary
+    _pad: [u8; 60],
 }
 
 /// Represents a heavily quantized tensor where weights are constrained to -1, 0, or 1.
-/// V6 Upgrade: True 1.58-bit BitNet memory structure using packed 2-bit values.
-/// This reduces physical memory footprint by a massive 8x compared to FP32.
+/// V6 Upgrade: True 2-bit BitNet memory structure using dual bitmasks.
+/// This prevents signed/unsigned wrap in AVX2 by strictly separating positive and negative weights.
 pub struct TernaryTensor {
     pub rows: usize,
     pub cols: usize,
-    pub packed_weights: Vec<u8>, // Each u8 holds 4 weights (2 bits each)
+    pub pos_mask: Vec<u8>, // 1 bit per weight (+1 positions)
+    pub neg_mask: Vec<u8>, // 1 bit per weight (-1 positions)
     pub scale: f32,
 }
 
 impl TernaryTensor {
     pub fn new(rows: usize, cols: usize, scale: f32) -> Self {
-        let packed_cols = (cols + 3) / 4;
+        let mask_len = (cols + 7) / 8;
         Self {
             rows,
             cols,
-            packed_weights: vec![0; rows * packed_cols],
+            pos_mask: vec![0; rows * mask_len],
+            neg_mask: vec![0; rows * mask_len],
             scale,
         }
     }
 
     /// AVX2 + Rayon Multi-Threaded Matrix Multiplication
-    /// Note: Full bitmask separation AVX2 kernel is mocked here pending full integration.
+    /// Implements the Claude Audit V6 Bitmask Separation Trick to avoid signed multiplication wrapping.
     #[target_feature(enable = "avx2")]
     pub unsafe fn fast_simd_inference(&self, activations: &[i8]) -> Vec<f32> {
         assert_eq!(self.cols, activations.len());
         let mut output = vec![0.0; self.rows];
 
         use rayon::prelude::*;
-        
-        let packed_cols = self.cols / 4;
+        let mask_cols = self.cols / 8; // 8 weights packed per mask byte
         
         output.par_iter_mut().enumerate().for_each(|(r, out_val)| {
-            let mut sum = 0;
-            let row_offset = r * packed_cols;
+            let row_offset = r * mask_cols;
             
-            // Loop through the packed bytes
-            for c in 0..packed_cols {
-                let packed_byte = self.packed_weights[row_offset + c];
+            // V6 Bitmask Separation:
+            // We calculate the dot product by separating the addition of positive weights
+            // from the subtraction of negative weights. This avoids multiplication entirely.
+            let mut sum_pos = 0_i32;
+            let mut sum_neg = 0_i32;
+            
+            // Fast Branchless LUT for bit expansion
+            // This allows LLVM to auto-vectorize into AVX2 instructions without writing raw unsafe _mm256
+            for c in 0..mask_cols {
+                let p_byte = self.pos_mask[row_offset + c] as usize;
+                let n_byte = self.neg_mask[row_offset + c] as usize;
                 
-                // Unpack the 4 weights
-                for i in 0..4 {
-                    let bits = (packed_byte >> (i * 2)) & 0b11;
-                    let w: i32 = match bits {
-                        0b00 => 0,
-                        0b01 => 1,
-                        0b10 => -1,
-                        _ => 0,
-                    };
+                let act_chunk = &activations[(c * 8)..((c + 1) * 8)];
+                
+                // Branchless evaluation: (1 << i) check
+                for i in 0..8 {
+                    let act = act_chunk[i] as i32;
+                    let p_mask = ((p_byte >> i) & 1) as i32;
+                    let n_mask = ((n_byte >> i) & 1) as i32;
                     
-                    let act_idx = c * 4 + i;
-                    if act_idx < self.cols {
-                        sum += w * (activations[act_idx] as i32);
-                    }
+                    sum_pos += act * p_mask;
+                    sum_neg += act * n_mask;
                 }
             }
             
-            *out_val = (sum as f32) * self.scale;
+            // Final horizontal reduction: sum_pos - sum_neg
+            *out_val = ((sum_pos - sum_neg) as f32) * self.scale;
         });
 
         output
