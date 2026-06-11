@@ -138,9 +138,73 @@ fn main() {
             println!("[+] Processed 3 parallel sequences in {:?}", batch_time);
             println!("[+] Active sequences remaining in pool: {}", batch_engine.active_sequences.len());
 
+            // Phase 8: Enterprise HTTP API Server (Aegis V4)
             println!("\n============================================================");
-            println!("[+] SYSTEM STATUS: AEGIS ARCHITECTURE V3.0 FULLY OPERATIONAL.");
+            println!("  PHASE 8: ENTERPRISE HTTP API (AEGIS V4)");
             println!("============================================================");
+            
+            use tiny_http::{Server, Response, Method};
+            use serde::{Deserialize, Serialize};
+
+            #[derive(Deserialize)]
+            struct InferenceRequest {
+                prompt: String,
+            }
+
+            #[derive(Serialize)]
+            struct InferenceResponse {
+                status: String,
+                generated_text: String,
+                execution_time_ms: f64,
+            }
+
+            let server = Server::http("0.0.0.0:8080").unwrap();
+            println!("[+] Aegis HTTP API Server listening on http://0.0.0.0:8080");
+            println!("[+] Ready to accept POST requests to /v1/completions\n");
+
+            for mut request in server.incoming_requests() {
+                if request.method() == &Method::Post && request.url() == "/v1/completions" {
+                    let mut content = String::new();
+                    request.as_reader().read_to_string(&mut content).unwrap_or_default();
+                    
+                    let start_api = Instant::now();
+                    
+                    // Parse the JSON request
+                    if let Ok(req_data) = serde_json::from_str::<InferenceRequest>(&content) {
+                        println!("[*] Received API Prompt: \"{}\"", req_data.prompt);
+                        
+                        // 1. Encode prompt
+                        let tokens = tokenizer.encode(&req_data.prompt);
+                        
+                        // 2. Inject into Continuous Batching Engine (Mock ID: 999)
+                        batch_engine.add_sequence(999, tokens[0], 2048);
+                        batch_engine.step(); // Execute Forward Pass
+                        
+                        // 3. Decode output
+                        let decoded = tokenizer.decode(&tokens); // Returning echoed text for PoC
+                        let exec_time = start_api.elapsed().as_secs_f64() * 1000.0;
+                        
+                        let response_data = InferenceResponse {
+                            status: "success".to_string(),
+                            generated_text: format!("{} [Aegis AVX2 Response]", decoded),
+                            execution_time_ms: exec_time,
+                        };
+                        
+                        let json_res = serde_json::to_string(&response_data).unwrap();
+                        let response = Response::from_string(json_res)
+                            .with_header(tiny_http::Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap());
+                        
+                        request.respond(response).unwrap();
+                        println!("[+] API Request served in {:.3} ms", exec_time);
+                    } else {
+                        let response = Response::from_string("{\"error\": \"Invalid JSON payload\"}").with_status_code(400);
+                        request.respond(response).unwrap();
+                    }
+                } else {
+                    let response = Response::from_string("{\"error\": \"Not Found\"}").with_status_code(404);
+                    request.respond(response).unwrap();
+                }
+            }
         }
         Err(e) => {
             println!("[-] Failed to open GGUF file. Is the model fully downloaded?");
