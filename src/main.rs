@@ -70,11 +70,29 @@ fn main() {
                 )
             };
 
+            // V6 Upgrade: True 2-bit packing.
+            // We pack 4 ternary weights into a single byte.
+            // 00 = 0, 01 = +1, 10 = -1
+            let mut packed = Vec::with_capacity((tensor_i8_slice.len() + 3) / 4);
+            for chunk in tensor_i8_slice.chunks(4) {
+                let mut b: u8 = 0;
+                for (i, &w) in chunk.iter().enumerate() {
+                    let bits: u8 = match w {
+                        0 => 0b00,
+                        1 => 0b01,
+                        -1 => 0b10,
+                        _ => 0b00,
+                    };
+                    b |= bits << (i * 2);
+                }
+                packed.push(b);
+            }
+
             let tensor_view = aegis_inference::TernaryTensor {
                 rows: 1024,
                 cols: 4096,
-                weights: tensor_i8_slice.to_vec(), // In V0.3 we will avoid this clone
-                scale: 1.0, // V5: Default scale factor to restore standard magnitude
+                packed_weights: packed,
+                scale: 1.0, // V6 scale
             };
 
             println!("[*] Injecting Zero-Copy slice into AVX2 Hardware Vectorizer...");
