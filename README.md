@@ -3,38 +3,38 @@
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Rust](https://img.shields.io/badge/Language-Rust-orange.svg)
 ![Build](https://img.shields.io/badge/Build-Passing-brightgreen.svg)
-![Status](https://img.shields.io/badge/Status-Alpha_Research-red.svg)
+![Status](https://img.shields.io/badge/Status-V6_Architecture_Audit-red.svg)
 
-**Aegis** is a high-performance, CPU-bound Large Language Model (LLM) inference framework written in pure, bare-metal Rust. By implementing **1.58-bit ternary quantization** (inspired by the BitNet b1.58 architecture) and aggressive AVX2/AVX-512 vectorization, Aegis mathematically shatters the GPU VRAM bottleneck. 
+**Aegis** is a high-performance, CPU-bound Large Language Model (LLM) inference framework written in pure, bare-metal Rust. By implementing **true 2-bit ternary quantization** (inspired by the BitNet b1.58 architecture) and hardware-specific AVX2 vectorization, Aegis bypasses the GPU VRAM bottleneck. 
 
-Our mission is to achieve GPU-parity LLM inference on standard consumer x86 and ARM infrastructure without relying on unified memory.
-
----
-
-## 🔬 The Hardware Bottleneck
-
-The AI industry is currently constrained by memory bandwidth. Modern FP16 and INT8 LLMs require immense VRAM to load weights into processing cores. The limitation of standard CPUs is not compute throughput, but the Von Neumann bottleneck between RAM and the CPU core.
-
-**Aegis bypasses this bottleneck entirely.** 
-By forcing model weights into a ternary state (`-1, 0, 1`), the memory footprint is compressed by >85%. This allows an entire attention layer's parameter matrix to be locked directly inside the **CPU's L3 Cache**, effectively eliminating RAM latency.
+Our mission is to achieve sub-millisecond execution latency on small-scale ternary models running entirely on consumer x86 infrastructure.
 
 ---
 
-## ⚡ Core Architecture
+## 🔬 The Hardware Bottleneck & Physics
+
+The AI industry is constrained by memory bandwidth. Modern FP16 and INT8 LLMs require immense VRAM to load weights into processing cores. The limitation of standard CPUs is the Von Neumann bottleneck between RAM and the CPU core.
+
+**Aegis bypasses this bottleneck via aggressive quantization.** 
+By forcing model weights into a ternary state (`-1, 0, 1`), and packing 4 weights into a single byte (`u8`), the memory footprint is compressed by 800% compared to standard FP32. This drastically reduces L3 cache misses during the forward pass.
+
+---
+
+## ⚡ Core Architecture (V6 Roadmap)
 
 Aegis is divided into three primary sub-systems:
 
-1. **`aegis-core`**: The foundational ternary tensor mathematics engine.
-2. **`aegis-alloc`**: A custom `CacheLockedAllocator` that bypasses OS-level page faults to strictly lock matrices within L3 cache boundaries.
-3. **`aegis-simd`**: The hardware-level abstraction layer that maps ternary multiplications directly to `_mm256_maddubs_epi16` AVX2 registers.
+1. **`aegis-core`**: The foundational ternary tensor mathematics engine utilizing a Sliding Window (Ring Buffer) KV Cache to allow infinite context scaling.
+2. **`aegis-alloc`**: The memory router utilizing `mmap` with a planned prefault execution pass to eliminate first-token page fault latency. Structs are enforced with `#[repr(C, align(64))]` to prevent False Sharing across CPU cores.
+3. **`aegis-simd`**: The hardware-level abstraction layer implementing AVX2 `_mm256_and_si256` bitmask separation to calculate ternary dot products purely through addition/subtraction without signed/unsigned multiplication wrapping.
 
 ```mermaid
 graph TD;
-    A[GGUF Model Weights] -->|1.58-bit Quantization| B(Aegis Memory Allocator);
-    B -->|Cache Locking| C{CPU L3 Cache};
-    C --> D[AVX2 / AVX-512 Vector Registers];
-    D --> E[Sparse Compute Router];
-    E -->|Zero-State Pruning| F[Output Activations];
+    A[GGUF Model Weights] -->|2-bit Quantization Packing| B(Aegis Memory Allocator);
+    B -->|Prefault mmap + 64-byte Alignment| C{CPU L1/L2 Cache};
+    C --> D[AVX2 Vector Registers];
+    D --> E[Bitmask Separation Router];
+    E -->|Zero-Multiplication Compute| F[Output Activations];
     
     style C fill:#1e1e1e,stroke:#333,stroke-width:2px,color:#fff
     style D fill:#0055ff,stroke:#000,stroke-width:2px,color:#fff
@@ -42,24 +42,21 @@ graph TD;
 
 ---
 
-## 📊 Benchmarks (Alpha v0.1)
+## 📊 Benchmarking & Targets
 
-Initial benchmarks on legacy hardware (Intel i5-8265U, 6MB L3 Cache, AVX2 only) processing a 4-million parameter matrix chunk:
+We do not use synthetic "Verified" labels. Aegis is being benchmarked directly against `llama.cpp` using strict token-per-second measurements. 
 
-| Inference Engine | Hardware | Data Type | Execution Time |
-| :--- | :--- | :--- | :--- |
-| **Naive Scalar CPU** | i5-8265U | FP32 | `2.31 ms` |
-| **Aegis AVX2 (Unrolled)** | i5-8265U | 1.58-bit | `Verified` |
-| **Aegis AVX2 (Full SIMD)** | i5-8265U | 1.58-bit | *Pending v0.2* |
-
-*(Note: Alpha v0.1 utilizes safe unrolled scalar fallbacks for cross-platform mathematical verification. Raw intrinsic injection occurs in v0.2).*
+**V6 Target Performance:**
+- **Hardware:** Intel i5-8265U
+- **Model Target:** < 150M Parameters (BitNet b1.58 Architecture)
+- **Goal:** **Sub-1ms per token** continuous-batching latency.
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-Aegis requires the Nightly Rust compiler due to the use of unstable `#![feature(portable_simd)]` and explicit hardware architecture flags.
+Aegis requires the Nightly Rust compiler due to the use of unstable `#![feature(portable_simd)]`.
 
 ```bash
 # Install Rust Nightly
@@ -77,21 +74,21 @@ cd aegis-inference
 RUSTFLAGS="-C target-cpu=native" cargo build --release
 ```
 
-### Running the Verification Benchmark
+### Running the V5 API Node
 
-To verify the ternary math against standard scalar floating-point execution on your specific CPU architecture:
 ```bash
 cargo run --release
 ```
+The REST API will bind to `0.0.0.0:8080`.
 
 ---
 
 ## 🤝 Institutional Contributing
 
-Aegis is currently in the **Alpha Research** phase. We actively welcome contributions from deep-tech engineers, specifically focusing on:
-- Horizontal dot product accumulation using `_mm256_maddubs_epi16`.
+Aegis is currently actively implementing the V6 Architecture Audit. We actively welcome contributions from deep-tech engineers, specifically focusing on:
+- Horizontal dot product accumulation using AVX2 bitmask separation.
+- `tokio::spawn_blocking` integration for true asynchronous API routing.
 - Hardware-specific ARM NEON/SVE implementations.
-- Model weight parsers for `GGUF` to `Aegis-Ternary` conversion.
 
 ## 📄 License
 
