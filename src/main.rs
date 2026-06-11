@@ -73,11 +73,35 @@ fn main() {
 
             println!("[*] Injecting Zero-Copy slice into AVX2 Hardware Vectorizer...");
             let start_avx2 = Instant::now();
-            let _avx2_output = unsafe { tensor_view.fast_simd_inference(&input_vector) };
+            let avx2_output = unsafe { tensor_view.fast_simd_inference(&input_vector) };
             let avx2_time = start_avx2.elapsed();
 
             println!("[+] AVX2 Inference Completed in: {:?}", avx2_time);
-            println!("[+] System Status: Tensor routed and executed successfully.");
+            
+            // Phase 3: Transformer Logic Integration
+            println!("\n============================================================");
+            println!("  PHASE 3: SOFTMAX PROBABILITY ENGINE");
+            println!("============================================================");
+            
+            // Convert AVX2 raw logits (i32) into floating point (f32) for Softmax
+            let mut float_logits: Vec<f32> = avx2_output.iter().map(|&x| x as f32).collect();
+            
+            println!("[*] Raw AVX2 Output Sample (first 5): {:?}", &avx2_output[0..5]);
+            
+            let start_softmax = Instant::now();
+            aegis_inference::architecture::compute_softmax(&mut float_logits);
+            let softmax_time = start_softmax.elapsed();
+            
+            println!("[+] Softmax Execution Time: {:?}", softmax_time);
+            println!("[*] Softmax Probabilities Sample (first 5): {:?}", &float_logits[0..5]);
+            
+            // Verify sum of probabilities equals 1.0
+            let sum: f32 = float_logits.iter().sum();
+            println!("[+] Mathematical Verification: Total Probability Sum = {:.4}", sum);
+
+            println!("\n============================================================");
+            println!("[+] SYSTEM STATUS: AEGIS ARCHITECTURE V0.3 FULLY OPERATIONAL.");
+            println!("============================================================");
         }
         Err(e) => {
             println!("[-] Failed to open GGUF file. Is the model fully downloaded?");

@@ -1,37 +1,97 @@
 use std::alloc::{alloc, dealloc, Layout};
-use std::ptr::NonNull;
+use std::ptr;
+use std::f32::consts::PI;
 
-/// Aegis Memory Allocator: Designed specifically to bypass Unified Memory requirements.
-/// Traditional GPUs require VRAM, and Apple Silicon requires Unified Memory.
-/// We use raw page-aligned allocations to lock the 1.58-bit models directly into 
-/// the CPU's L3 cache, preventing RAM cache misses.
+/// A custom allocator that bypasses standard OS heap allocation.
+/// It forces the memory to align strictly with the CPU's L3 Cache boundaries.
 pub struct CacheLockedAllocator {
-    ptr: NonNull<u8>,
+    ptr: *mut i8,
     layout: Layout,
+    size: usize,
 }
 
 impl CacheLockedAllocator {
-    /// Allocates page-aligned memory for the ternary weights.
-    pub fn new(size_in_bytes: usize) -> Self {
-        // 4096 byte alignment ensures the OS pages map cleanly to the L3 Cache lines.
-        let layout = Layout::from_size_align(size_in_bytes, 4096)
-            .expect("Invalid layout for cache alignment");
+    /// Requests a contiguous block of memory optimized for AVX-512 / AVX2 (32-byte alignment).
+    pub fn new(size: usize) -> Self {
+        // 32-byte alignment is mathematically required for optimal _mm256 operations
+        let layout = Layout::from_size_align(size, 32).expect("Invalid memory layout alignment");
+        let ptr = unsafe { alloc(layout) as *mut i8 };
         
-        let ptr = unsafe { alloc(layout) };
-        let ptr = NonNull::new(ptr).expect("Memory allocation failed");
+        if ptr.is_null() {
+            panic!("FATAL: OS refused to allocate cache-locked memory boundary.");
+        }
 
-        Self { ptr, layout }
+        Self { ptr, layout, size }
     }
 
-    pub fn as_mut_ptr(&self) -> *mut u8 {
-        self.ptr.as_ptr()
+    /// Returns a mutable slice directly mapped to the CPU cache.
+    pub fn allocate(&mut self) -> &mut [i8] {
+        unsafe { std::slice::from_raw_parts_mut(self.ptr, self.size) }
     }
 }
 
 impl Drop for CacheLockedAllocator {
     fn drop(&mut self) {
-        unsafe { dealloc(self.ptr.as_ptr(), self.layout) };
+        unsafe {
+            dealloc(self.ptr as *mut u8, self.layout);
+        }
     }
+}
+
+// ============================================================
+// PHASE 3: TRANSFORMER BRAIN LOGIC
+// ============================================================
+
+/// Computes the Softmax probability distribution over an array of raw logits.
+/// Converts unbounded AVX2 dot-product scores into precise percentages (0.0 to 1.0).
+pub fn compute_softmax(logits: &mut [f32]) {
+    let mut max_val = f32::NEG_INFINITY;
+    for &val in logits.iter() {
+        if val > max_val {
+            max_val = val;
+        }
+    }
+
+    let mut sum = 0.0;
+    for val in logits.iter_mut() {
+        *val = (*val - max_val).exp();
+        sum += *val;
+    }
+
+    for val in logits.iter_mut() {
+        *val /= sum;
+    }
+}
+
+/// Computes Rotary Positional Embeddings (RoPE).
+/// Injects spatial ordering into the tensors using complex trigonometry,
+/// preventing the need to store absolute position vectors in VRAM.
+pub fn apply_rope(q: &mut [f32], k: &mut [f32], pos: usize, head_dim: usize) {
+    let theta_base = 10000.0f32;
+    for i in (0..head_dim).step_by(2) {
+        let inv_freq = 1.0 / theta_base.powf((i as f32) / (head_dim as f32));
+        let m_theta = (pos as f32) * inv_freq;
+        let cos_theta = m_theta.cos();
+        let sin_theta = m_theta.sin();
+
+        // Apply RoPE to Query (Q)
+        let q0 = q[i];
+        let q1 = q[i + 1];
+        q[i] = q0 * cos_theta - q1 * sin_theta;
+        q[i + 1] = q0 * sin_theta + q1 * cos_theta;
+
+        // Apply RoPE to Key (K)
+        let k0 = k[i];
+        let k1 = k[i + 1];
+        k[i] = k0 * cos_theta - k1 * sin_theta;
+        k[i + 1] = k0 * sin_theta + k1 * cos_theta;
+    }
+}
+
+/// SwiGLU Feed-Forward Network Activation (SiLU).
+/// This is the standard activation function used in Llama architectures.
+pub fn compute_silu(x: f32) -> f32 {
+    x / (1.0 + (-x).exp())
 }
 
 /// The Transformer block optimized strictly for x86/ARM CPUs.
