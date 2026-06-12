@@ -8,10 +8,17 @@ the goal is absolute low-latency, offline inference on consumer edge hardware.
 
 ## architecture
 
-1. **aegis-core**: zero-copy memory mapped inference engine. sliding window kv-cache with constant-memory bounded context.
-2. **aegis-quantizer**: absmean quantizer. crushes fp16 weights into absolute ternary states (-1, 0, 1) and packs 4 weights per u8 byte (16x compression).
-3. **aegis-simd**: hardware bitmask router. calculates dot products purely through addition/subtraction. zero floating-point multiplication.
-4. **aegis-router**: non-blocking tokio/axum async event loop for concurrent continuous batching.
+### 1. aegis-core (memory & state)
+zero-copy memory mapped inference engine. modern models fail because they try to load 8gb of fp16 weights into ram, stalling the cpu on page faults. aegis uses `mmap` with `MAP_POPULATE` (prefaulting) to map the binary directly into virtual memory. there is no loading phase. instantiation is 0ms. context is handled by a sliding window kv-cache with constant-memory bounds. when the context window hits the limit, the oldest tokens are gracefully evicted to prevent oom panics.
+
+### 2. aegis-quantizer (the math)
+uses the absmean formula from the bitnet b1.58 paper. it takes bloated huggingface fp16 weights, calculates the absolute mean of the matrix as a scaling factor (gamma), and brutally forces every parameter into `-1`, `0`, or `1`. it then maps these states to 2-bit unsigned logic (`00=0`, `01=+1`, `10=-1`) and bitwise shifts 4 weights into a single `u8` byte. this achieves a 16:1 compression ratio against fp32.
+
+### 3. aegis-simd (hardware intrinsics)
+the critical bypass. calculating `-1 * activation` using signed multiplication on a cpu is slow. aegis avoids floating point multiplication entirely. it uses a dual-bitmask separation trick: positive weights are stored in one bitmask, negative in another. during inference, a branchless lookup table (lut) expands the masks, and the engine calculates the dot product purely through addition and subtraction (`sum_pos - sum_neg`). via llvm auto-vectorization (`#[cfg_attr]`), this compiles down directly to 256-bit `vpsubb` instructions on avx2 (intel/amd) or 128-bit `vsubq` on neon (arm/apple edge).
+
+### 4. aegis-router (concurrent serving)
+synchronous blocking limits throughput. aegis-router uses a non-blocking `tokio` multi-threaded runtime bound to an `axum` http framework. requests are shoved into a concurrent continuous batching queue. the engine evaluates multiple requests in a single forward pass through the ternary layers, achieving enterprise-scale throughput on local hardware without thread starvation.
 
 ```mermaid
 graph TD;
