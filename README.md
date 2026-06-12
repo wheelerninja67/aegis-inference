@@ -13,6 +13,21 @@ the goal is absolute low-latency, offline inference on consumer edge hardware.
 3. **aegis-simd**: hardware bitmask router. calculates dot products purely through addition/subtraction. zero floating-point multiplication.
 4. **aegis-router**: non-blocking tokio/axum async event loop for concurrent continuous batching.
 
+```mermaid
+graph TD;
+    A[raw huggingface fp16] -->|aegis-quantizer| B(1.58-bit ternary u8);
+    B -->|prefault mmap| C{cpu l1/l2/l3 cache};
+    C --> D[hardware intrinsics];
+    D -->|intel/amd| E[avx2 branchless lut];
+    D -->|apple/arm edge| F[neon registers];
+    E --> G[tokio async router];
+    F --> G;
+    G -->|zero mult continuous batching| H[output activations];
+    
+    style C fill:#1e1e1e,stroke:#333,stroke-width:2px,color:#fff
+    style D fill:#0055ff,stroke:#000,stroke-width:2px,color:#fff
+```
+
 ## benchmarks
 
 measured on intel i5-8265u (no dedicated gpu).
