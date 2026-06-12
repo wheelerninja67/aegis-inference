@@ -1,5 +1,6 @@
 use libp2p::{
-    gossipsub, mdns, noise, swarm::NetworkBehaviour, swarm::SwarmEvent, tcp, yamux, Multiaddr,
+    gossipsub, mdns, noise, swarm::NetworkBehaviour, swarm::SwarmEvent, tcp, yamux,
+    futures::StreamExt,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
@@ -79,9 +80,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let local_peer_id = libp2p::PeerId::from(local_key.public());
     println!("[+] Node Identity Generated: {local_peer_id}");
 
-    // Set up the TCP transport with Noise encryption and Yamux multiplexing
-    let transport = libp2p::tokio_development_transport(local_key.clone())?;
-
     // Create the Gossipsub network behavior (How models talk to each other)
     let message_id_fn = |message: &gossipsub::Message| {
         let mut s = DefaultHasher::new();
@@ -97,7 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Failed to build gossipsub config");
 
     let mut gossipsub = gossipsub::Behaviour::new(
-        gossipsub::MessageAuthenticity::Signed(local_key),
+        gossipsub::MessageAuthenticity::Signed(local_key.clone()),
         gossipsub_config,
     ).expect("Failed to build gossipsub behaviour");
 
@@ -109,8 +107,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)?;
     let behaviour = AegisMeshBehaviour { gossipsub, mdns };
 
-    // Build the Swarm
-    let mut swarm = libp2p::SwarmBuilder::with_tokio_executor(transport, behaviour, local_peer_id).build();
+    // Build the Swarm using the v0.56 Builder Pattern
+    let mut swarm = libp2p::SwarmBuilder::with_existing_identity(local_key)
+        .with_tokio()
+        .with_tcp(
+            tcp::Config::default(),
+            noise::Config::new,
+            yamux::Config::default,
+        )?
+        .with_behaviour(|_| behaviour)?
+        .with_swarm_config(|cfg| cfg.with_idle_connection_timeout(Duration::from_secs(60)))
+        .build();
 
     // Listen on all interfaces on a random port
     swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
