@@ -1,6 +1,7 @@
 #![feature(portable_simd)]
 
 pub mod architecture;
+pub mod ffi;
 pub mod gguf_parser;
 pub mod tokenizer;
 

@@ -3,6 +3,10 @@ name = "aegis_inference"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "aegis"
+crate-type = ["lib", "cdylib"]
+
 [dependencies]
 axum = "0.8.9"
 memmap2 = "0.9.10"
