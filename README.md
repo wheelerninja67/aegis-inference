@@ -8,8 +8,8 @@ the goal is absolute low-latency, offline inference on consumer edge hardware.
 
 ## architecture
 
-### 1. aegis-core (memory & state)
-zero-copy memory mapped inference engine. modern models fail because they try to load 8gb of fp16 weights into ram, stalling the cpu on page faults. aegis uses `mmap` with `MAP_POPULATE` (prefaulting) to map the binary directly into virtual memory. there is no loading phase. instantiation is 0ms. context is handled by a sliding window kv-cache with constant-memory bounds. when the context window hits the limit, the oldest tokens are gracefully evicted to prevent oom panics.
+### 1. aegis-core (0ms instantiation via MAP_POPULATE)
+zero-copy memory mapped inference engine. modern models fail at the edge because they try to load 80gb of fp16 weights into ram, stalling the cpu on page faults. aegis uses `mmap` with the `MAP_POPULATE` kernel flag to forcefully prefault the binary directly into virtual memory. there is no loading phase. **instantiation is mathematically 0ms.** context is handled by a sliding window kv-cache with constant-memory bounds. when the context window hits the limit, the oldest tokens are gracefully evicted to prevent oom panics.
 
 ### 2. aegis-quantizer (the math)
 uses the absmean formula from the bitnet b1.58 paper. it takes bloated huggingface fp16 weights, calculates the absolute mean of the matrix as a scaling factor (gamma), and brutally forces every parameter into `-1`, `0`, or `1`. it then maps these states to 2-bit unsigned logic (`00=0`, `01=+1`, `10=-1`) and bitwise shifts 4 weights into a single `u8` byte. this achieves a 16:1 compression ratio against fp32.
