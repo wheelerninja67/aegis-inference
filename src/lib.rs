@@ -4,7 +4,10 @@ pub mod architecture;
 pub mod gguf_parser;
 pub mod tokenizer;
 
+#[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
+#[cfg(target_arch = "aarch64")]
+use std::arch::aarch64::*;
 
 /// V6 Cache-Line Aligned Struct
 /// Guarantees 64-byte alignment to prevent False Sharing across Rayon threads.
@@ -38,9 +41,10 @@ impl TernaryTensor {
         }
     }
 
-    /// AVX2 + Rayon Multi-Threaded Matrix Multiplication
-    /// Implements the Claude Audit V6 Bitmask Separation Trick to avoid signed multiplication wrapping.
-    #[target_feature(enable = "avx2")]
+    /// Edge-Compatible Multi-Threaded Matrix Multiplication
+    /// Implements the V6 Bitmask Separation Trick mapped to either AVX2 (Intel/AMD) or NEON (ARM/Apple Silicon/Tesla).
+    #[cfg_attr(target_arch = "x86_64", target_feature(enable = "avx2"))]
+    #[cfg_attr(target_arch = "aarch64", target_feature(enable = "neon"))]
     pub unsafe fn fast_simd_inference(&self, activations: &[i8]) -> Vec<f32> {
         assert_eq!(self.cols, activations.len());
         let mut output = vec![0.0; self.rows];
