@@ -39,11 +39,17 @@ graph TD;
 
 measured on intel i5-8265u (no dedicated gpu).
 
-*   **parameters**: ~4.19M (1024x4096 test matrix)
+### L3 Cache Bound (4M Parameters)
+when the matrix fits entirely within the cpu's l3 cache, the avx2 branchless lut executes at near-theoretical peak.
 *   **quantization**: 1.58-bit packed u8
-*   **math kernel**: branchless avx2 lut separation
 *   **latency**: 6.05 ms / token
 *   **throughput**: 165.18 tokens / second
+
+### Memory Bandwidth Bound (1.1B Parameters - TinyLlama scale)
+when the matrix exceeds l3 cache and hits ddr4 main memory, the zero-copy `MAP_POPULATE` and 16x compression ratio keep the engine highly viable for edge deployment without a gpu.
+*   **quantization**: 1.58-bit packed u8
+*   **latency**: 332.05 ms / token
+*   **throughput**: 3.01 tokens / second
 
 ## build
 
