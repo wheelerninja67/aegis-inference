@@ -135,7 +135,11 @@ impl GgufParser {
         println!("[*] Initiating Zero-Copy Memory Map of GGUF Payload...");
         
         // Map the entire file as read-only memory directly from the NVMe/SSD.
-        let mmap = unsafe { MmapOptions::new().map(&self.file)? };
+        let mmap = unsafe { 
+            MmapOptions::new()
+                .populate() // MAP_POPULATE: Prefault the pages to eliminate cold-start latency
+                .map(&self.file)? 
+        };
         
         println!("[+] Successfully mapped {} bytes directly to physical memory.", mmap.len());
         self.mmap = Some(mmap);
