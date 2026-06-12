@@ -11,6 +11,10 @@ use tokio::{io, io::AsyncBufReadExt, select};
 enum SwarmMessage {
     /// A node completed tuning and is broadcasting the mathematical LoRA delta weights.
     LoRAWeightUpdate { node_id: String, checksum: String },
+    /// A massive task fragmented by the CEO node sent to the Swarm.
+    OrchestratedTask { task_id: String, instruction: String, payload: String },
+    /// A worker node completed a sub-task and is returning the payload.
+    TaskResult { task_id: String, worker_id: String, result: String },
     /// A scraping node found a massive anomaly and is tasking an inference node to evaluate it.
     InferenceTask { target_ticker: String, payload_size: usize },
     /// A node successfully evaluated a signal and is broadcasting the conclusion.
@@ -19,6 +23,45 @@ enum SwarmMessage {
         confidence: f32,
         action: String,
     },
+}
+
+/// The CEO Node logic that fragments tasks
+struct SwarmOrchestrator {
+    active_tasks: std::collections::HashMap<String, Vec<String>>,
+}
+
+impl SwarmOrchestrator {
+    fn new() -> Self {
+        Self { active_tasks: std::collections::HashMap::new() }
+    }
+
+    /// Fragment a massive goal into sub-tasks for the Swarm
+    fn fragment_directive(&mut self, directive: &str) -> Vec<SwarmMessage> {
+        println!("[CEO] Fragmenting Directive: '{}'", directive);
+        
+        // In a real scenario, the local 1.58-bit model would do this fragmentation dynamically.
+        // For the protocol structure, we mock the deterministic JSON breakdown.
+        let sub_tasks = vec![
+            SwarmMessage::OrchestratedTask {
+                task_id: "T-01".to_string(),
+                instruction: "Scrape SEC Filings for target".to_string(),
+                payload: "https://sec.gov".to_string(),
+            },
+            SwarmMessage::OrchestratedTask {
+                task_id: "T-02".to_string(),
+                instruction: "Run local LoRA Sentiment Analysis on scraped text".to_string(),
+                payload: "WAITING_ON_T-01".to_string(),
+            },
+            SwarmMessage::OrchestratedTask {
+                task_id: "T-03".to_string(),
+                instruction: "Calculate NAS100 Systemic Risk Exposure".to_string(),
+                payload: "WAITING_ON_T-02".to_string(),
+            }
+        ];
+
+        self.active_tasks.insert("MASTER_DIRECTIVE".to_string(), vec![]);
+        sub_tasks
+    }
 }
 
 #[derive(NetworkBehaviour)]
@@ -77,11 +120,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Setup an async reader for local terminal commands
     let mut stdin = io::BufReader::new(io::stdin()).lines();
 
+    let mut orchestrator = SwarmOrchestrator::new();
+
     loop {
         select! {
             // Read terminal input to broadcast manual commands to the swarm
             Ok(Some(line)) = stdin.next_line() => {
-                if line.starts_with("signal") {
+                if line.starts_with("orchestrate") {
+                    let parts: Vec<&str> = line.splitn(2, ' ').collect();
+                    if parts.len() == 2 {
+                        let directive = parts[1];
+                        let tasks = orchestrator.fragment_directive(directive);
+                        
+                        for task in tasks {
+                            let json = serde_json::to_vec(&task).unwrap();
+                            if let Err(e) = swarm.behaviour_mut().gossipsub.publish(global_topic.clone(), json) {
+                                println!("[!] Failed to broadcast task to swarm: {e:?}");
+                            } else {
+                                println!("[+] Task Dispatched to Mesh: {:?}", task);
+                            }
+                        }
+                    }
+                } else if line.starts_with("signal") {
                     let msg = SwarmMessage::AlphaSignal {
                         ticker: "NAS100".to_string(),
                         confidence: 0.98,
@@ -120,6 +180,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         match swarm_msg {
                             SwarmMessage::LoRAWeightUpdate { node_id, checksum } => {
                                 println!("    -> [WEIGHT SYNC] Node {node_id} is distributing new LoRA weights (checksum: {checksum}).");
+                            },
+                            SwarmMessage::OrchestratedTask { task_id, instruction, payload } => {
+                                println!("    -> [SWARM DELEGATION] Received Task {task_id}: {instruction}");
+                                println!("       [*] Booting local 1.58-bit engine to execute payload...");
+                                
+                                // Mock the worker node completing the inference
+                                let result_msg = SwarmMessage::TaskResult {
+                                    task_id: task_id.clone(),
+                                    worker_id: local_peer_id.to_string(),
+                                    result: "INFERENCE_COMPLETE_ALPHA_EXTRACTED".to_string(),
+                                };
+                                let json = serde_json::to_vec(&result_msg).unwrap();
+                                // Note: In a real swarm, you wait for the inference thread to finish before broadcasting
+                                let _ = swarm.behaviour_mut().gossipsub.publish(global_topic.clone(), json);
+                            },
+                            SwarmMessage::TaskResult { task_id, worker_id, result } => {
+                                println!("    -> [CEO SYNTHESIS] Worker Node {worker_id} completed task {task_id}. Result: {result}");
                             },
                             SwarmMessage::InferenceTask { target_ticker, payload_size } => {
                                 println!("    -> [TASK DELEGATED] Scraper requested inference on {target_ticker} ({payload_size} bytes). Running matrices...");
