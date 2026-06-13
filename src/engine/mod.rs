@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use rayon::prelude::*;
+use std::simd::num::SimdFloat;
 
 use crate::gguf::weight_loader::AegisModel;
 use crate::kv_cache::page_pool::{PagePool, PAGE_TOKENS};
@@ -255,16 +256,32 @@ impl AegisEngine {
                     let normed_i8 = f32_to_i8_absmax(&normed);
                     self.ternary_proj_i8(&normed_i8, lm_head, lm_head.rows)
                 } else {
-                    // Fallback to tied embeddings using dense f32 dot product
+                    // Fallback to tied embeddings using native portable_simd f32x8 dot product
                     let vocab_size = self.model.embed_table.len() / self.model.n_embd as usize;
                     let mut fallback_logits = vec![0.0f32; vocab_size];
                     let n_embd = self.model.n_embd as usize;
                     
                     fallback_logits.par_iter_mut().enumerate().for_each(|(v, logit)| {
-                        let mut sum = 0.0f32;
+                        use std::simd::num::SimdFloat;
+                        use std::simd::f32x8;
+                        
                         let offset = v * n_embd;
-                        for i in 0..n_embd {
+                        let mut sum_vec = f32x8::splat(0.0);
+                        let mut i = 0;
+                        
+                        // Process 8 floats at a time using AVX2/NEON intrinsics
+                        while i + 8 <= n_embd {
+                            let a = f32x8::from_slice(&normed[i..i+8]);
+                            let b = f32x8::from_slice(&self.model.embed_table[offset + i .. offset + i + 8]);
+                            sum_vec += a * b;
+                            i += 8;
+                        }
+                        
+                        let mut sum = sum_vec.reduce_sum();
+                        // Handle remainder
+                        while i < n_embd {
                             sum += normed[i] * self.model.embed_table[offset + i];
+                            i += 1;
                         }
                         *logit = sum;
                     });
@@ -343,23 +360,96 @@ impl AegisEngine {
 
 #[inline]
 fn f32_to_i8_absmax(x: &[f32]) -> Vec<i8> {
-    let absmax = x.iter().map(|v| v.abs()).fold(0.0f32, f32::max);
+    use std::simd::num::SimdFloat;
+    use std::simd::{f32x8, i8x8, Simd};
+
+    let absmax = absmax_scale(x);
     if absmax < 1e-9 { return vec![0i8; x.len()]; }
+    
     let scale = 127.0 / absmax;
-    x.iter().map(|v| (v * scale).clamp(-127.0, 127.0) as i8).collect()
+    let scale_vec = f32x8::splat(scale);
+    let mut out = vec![0i8; x.len()];
+    
+    let mut i = 0;
+    let min_vec = f32x8::splat(-127.0);
+    let max_vec = f32x8::splat(127.0);
+
+    while i + 8 <= x.len() {
+        let v = f32x8::from_slice(&x[i..i+8]);
+        let scaled = (v * scale_vec).simd_clamp(min_vec, max_vec);
+        let int_vals: Simd<i32, 8> = scaled.cast();
+        // Pack i32 to i8. Since values are bounded [-127, 127], safe to cast.
+        let i8_arr: [i8; 8] = [
+            int_vals[0] as i8, int_vals[1] as i8, int_vals[2] as i8, int_vals[3] as i8,
+            int_vals[4] as i8, int_vals[5] as i8, int_vals[6] as i8, int_vals[7] as i8,
+        ];
+        out[i..i+8].copy_from_slice(&i8_arr);
+        i += 8;
+    }
+    while i < x.len() {
+        out[i] = (x[i] * scale).clamp(-127.0, 127.0) as i8;
+        i += 1;
+    }
+    out
 }
 
 #[inline]
 fn absmax_scale(x: &[f32]) -> f32 {
-    x.iter().map(|v| v.abs()).fold(0.0f32, f32::max).max(1e-9)
+    use std::simd::num::SimdFloat;
+    use std::simd::f32x8;
+
+    let mut max_vec = f32x8::splat(0.0);
+    let mut i = 0;
+    while i + 8 <= x.len() {
+        let v = f32x8::from_slice(&x[i..i+8]).abs();
+        max_vec = max_vec.simd_max(v);
+        i += 8;
+    }
+    let mut absmax = max_vec.reduce_max();
+    while i < x.len() {
+        if x[i].abs() > absmax { absmax = x[i].abs(); }
+        i += 1;
+    }
+    absmax.max(1e-9)
 }
 
 #[inline]
 fn rms_norm_inplace(x: &mut [f32], w: &[f32]) {
-    let rms = (x.iter().map(|v| v * v).sum::<f32>() / x.len() as f32 + 1e-5).sqrt();
+    use std::simd::num::SimdFloat;
+    use std::simd::f32x8;
+
+    let mut sum_vec = f32x8::splat(0.0);
+    let mut i = 0;
+    while i + 8 <= x.len() {
+        let v = f32x8::from_slice(&x[i..i+8]);
+        sum_vec += v * v;
+        i += 8;
+    }
+    let mut sum = sum_vec.reduce_sum();
+    while i < x.len() {
+        sum += x[i] * x[i];
+        i += 1;
+    }
+
+    let rms = (sum / x.len() as f32 + 1e-5).sqrt();
     let scale = 1.0 / rms;
-    for (i, v) in x.iter_mut().enumerate() { 
-        *v = (*v * scale) * w.get(i).copied().unwrap_or(1.0); 
+    let scale_vec = f32x8::splat(scale);
+
+    let mut j = 0;
+    while j + 8 <= x.len() {
+        let v = f32x8::from_slice(&x[j..j+8]);
+        let weights = if j + 8 <= w.len() {
+            f32x8::from_slice(&w[j..j+8])
+        } else {
+            f32x8::splat(1.0) // Fallback for weights if missing
+        };
+        let out = (v * scale_vec) * weights;
+        out.copy_to_slice(&mut x[j..j+8]);
+        j += 8;
+    }
+    while j < x.len() {
+        x[j] = (x[j] * scale) * w.get(j).copied().unwrap_or(1.0);
+        j += 1;
     }
 }
 
