@@ -8,10 +8,8 @@ name = "aegis"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-axum = "0.8.9"
 memmap2 = "0.9.10"
+num_cpus = "1.17.0"
 rand = "0.10.1"
 rayon = "1.12.0"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.150"
-tokio = { version = "1.52.3", features = ["full"] }
+tokenizers = { version = "0.19", default-features = false, features = ["onig"] }

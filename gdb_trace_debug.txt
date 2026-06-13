@@ -1,0 +1,27 @@
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.archlinux.org>
+  <https://debuginfod.cachyos.org>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/usr/lib/libthread_db.so.1".
+[validate] opening ./models/tinyllama/tinyllama-1.1b-chat-v1.0.Q8_0.gguf...
+[loader] loading tensor: output.weight (69632000 bytes, dims [2048, 32000])
+[loader] loading tensor: token_embd.weight (69632000 bytes, dims [2048, 32000])
+[loader] skipping non-ternary tensor: blk.0.attn_norm.weight
+[loader] loading tensor: blk.0.ffn_down.weight (12255232 bytes, dims [5632, 2048])
+[loader] loading tensor: blk.0.ffn_gate.weight (12255232 bytes, dims [2048, 5632])
+[loader] loading tensor: blk.0.ffn_up.weight (12255232 bytes, dims [2048, 5632])
+[loader] skipping non-ternary tensor: blk.0.ffn_norm.weight
+[loader] loading tensor: blk.0.attn_k.weight (557056 bytes, dims [2048, 256])
+
+Program received signal SIGSEGV, Segmentation fault.
+0x00007ffff7dacb13 in ?? () from /usr/lib/libc.so.6
+#0  0x00007ffff7dacb13 in ?? () from /usr/lib/libc.so.6
+#1  0x0000555555588442 in core::ptr::write_bytes<u64> (dst=0x5555558c4e00, val=0, count=65536) at /rustc/cced03bfd61a304243a34504618ecec86c17063f/library/core/src/ptr/mod.rs:713
+#2  aegis::gguf::weight_loader::BitmaskTensor::alloc_aligned_u64 (n_words=8192) at src/gguf/weight_loader.rs:92
+#3  0x00005555555896a4 in aegis::gguf::weight_loader::q8_blocks_to_ternary_bitmasks (raw=&[u8](size=557056) = {...}, rows=256, cols_raw=2048) at src/gguf/weight_loader.rs:116
+#4  0x0000555555589232 in aegis::gguf::weight_loader::AegisModel::load_gguf (path="./models/tinyllama/tinyllama-1.1b-chat-v1.0.Q8_0.gguf") at src/gguf/weight_loader.rs:239
+#5  0x000055555557c1bd in validate_weights::main () at src/bin/validate_weights.rs:16

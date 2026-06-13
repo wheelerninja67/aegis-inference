@@ -1,0 +1,40 @@
+warning: unused import: `std::ptr`
+ --> src/architecture.rs:2:5
+  |
+2 | use std::ptr;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::f32::consts::PI`
+ --> src/architecture.rs:3:5
+  |
+3 | use std::f32::consts::PI;
+  |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::arch::x86_64::*`
+  --> src/lib.rs:13:5
+   |
+13 | use std::arch::x86_64::*;
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: feature `portable_simd` is declared but not used
+ --> src/lib.rs:1:12
+  |
+1 | #![feature(portable_simd)]
+  |            ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_features)]` (part of `#[warn(unused)]`) on by default
+
+warning: `aegis_inference` (lib) generated 4 warnings (run `cargo fix --lib -p aegis_inference` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 0.37s
+     Running `target/release/validate_weights ./models/tinyllama/tinyllama-1.1b-chat-v1.0.Q8_0.gguf`
+[validate] opening ./models/tinyllama/tinyllama-1.1b-chat-v1.0.Q8_0.gguf...
+[loader] loading tensor: output.weight (69632000 bytes, dims [2048, 32000])
+[loader] loading tensor: token_embd.weight (69632000 bytes, dims [2048, 32000])
+[loader] skipping non-ternary tensor: blk.0.attn_norm.weight
+[loader] loading tensor: blk.0.ffn_down.weight (12255232 bytes, dims [5632, 2048])
+[loader] loading tensor: blk.0.ffn_gate.weight (12255232 bytes, dims [2048, 5632])
+[loader] loading tensor: blk.0.ffn_up.weight (12255232 bytes, dims [2048, 5632])
+[loader] skipping non-ternary tensor: blk.0.ffn_norm.weight
+[loader] loading tensor: blk.0.attn_k.weight (557056 bytes, dims [2048, 256])

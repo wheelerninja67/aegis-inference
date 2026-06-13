@@ -1,12 +1,17 @@
 #![feature(portable_simd)]
 
-pub mod architecture;
+pub mod simd;
+pub mod kv_cache;
+pub mod attention;
+pub mod gguf;
+pub mod scheduler;
+pub mod engine;
 pub mod ffi;
-pub mod gguf_parser;
 pub mod tokenizer;
 
-#[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::*;
+pub mod architecture;
+
+
 #[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
 

@@ -1,4 +1,4 @@
-use aegis_inference::TernaryTensor;
+use aegis::TernaryTensor;
 use std::time::Instant;
 
 fn main() {
