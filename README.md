@@ -52,20 +52,34 @@ graph TD;
     style F fill:#0055ff,stroke:#000,stroke-width:2px,color:#fff
 ```
 
-## Installation & Build
+## Installation (One-Click)
 
-Aegis requires a recent Rust nightly compiler to access the `portable_simd` feature branch.
+Aegis provides pre-compiled, auto-vectorized binaries for Linux, macOS (Apple Silicon), and Windows. 
 
+```bash
+curl -sL https://aegis.sh/install | bash
+```
+
+Alternatively, to build from source (requires Rust nightly):
 ```bash
 git clone https://github.com/wheelerninja67/aegis-inference.git
 cd aegis-inference
-
-# Compile with native hardware intrinsics (AVX2/NEON)
 RUSTFLAGS="-C target-cpu=native" cargo build --release
-
-# Boot the async router
-cargo run --release --bin aegis_inference
 ```
+
+## Connect to Any UI (The Trojan Horse)
+
+Aegis is fully compatible with the OpenAI API standard. This means you do not need a custom frontend to use it. You can plug Aegis directly into popular local AI UIs like **Open WebUI**, **Chatbox**, or **LM Studio**.
+
+Simply run the engine in background daemon mode:
+```bash
+aegis run --demo
+```
+
+Then, in your UI settings, point the OpenAI Base URL to:
+`http://127.0.0.1:8080/v1`
+
+Aegis will instantly take over the inference backend, executing your prompts entirely offline via AVX2/NEON SIMD intrinsics.
 
 
 ## License
