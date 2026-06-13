@@ -24,6 +24,12 @@ enum SwarmMessage {
         confidence: f32,
         action: String,
     },
+    
+    // --- DISTRIBUTED CONSENSUS (RAFT-LITE) ---
+    /// The active CEO node broadcasting a 5-second liveness ping.
+    CeoHeartbeat { ceo_id: String, term: u64 },
+    /// Replicates the CEO's active task ledger across all nodes so a Shadow CEO can seamlessly take over.
+    LedgerSync { state_hash: String, active_tasks: usize },
 }
 
 /// Tracks pending tasks for fault-tolerance
@@ -242,6 +248,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             },
                             SwarmMessage::AlphaSignal { ticker, confidence, action } => {
                                 println!("    -> [ALPHA EXTRACTED] {action} {ticker} with {confidence} confidence! Piping to Kessler...");
+                            },
+                            SwarmMessage::CeoHeartbeat { ceo_id, term } => {
+                                // Silent heartbeat tracking, but we log the first discovery
+                                // println!("    -> [RAFT-LITE] Received CEO Heartbeat from {} (Term {})", ceo_id, term);
+                            },
+                            SwarmMessage::LedgerSync { state_hash, active_tasks } => {
+                                println!("    -> [SHADOW LEDGER] Synced active tasks ({active_tasks}) with CEO hash: {state_hash}");
                             }
                         }
                     }
