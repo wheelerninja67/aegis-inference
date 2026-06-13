@@ -199,18 +199,23 @@ impl AegisModel {
         eprintln!("[loader] tokenizer: {} vocab entries", tokenizer.vocab_size);
 
         let n_ctx    = parser.header.metadata.get("llama.context_length")
+                         .or_else(|| parser.header.metadata.get("bitnet.context_length"))
                          .and_then(Self::extract_int)
                          .unwrap_or(2048);
         let n_embd   = parser.header.metadata.get("llama.embedding_length")
+                         .or_else(|| parser.header.metadata.get("bitnet.embedding_length"))
                          .and_then(Self::extract_int)
                          .unwrap_or(4096);
         let n_heads  = parser.header.metadata.get("llama.attention.head_count")
+                         .or_else(|| parser.header.metadata.get("bitnet.attention.head_count"))
                          .and_then(Self::extract_int)
                          .unwrap_or(32);
         let n_heads_kv = parser.header.metadata.get("llama.attention.head_count_kv")
+                           .or_else(|| parser.header.metadata.get("bitnet.attention.head_count_kv"))
                            .and_then(Self::extract_int)
                            .unwrap_or(n_heads);
         let n_layers = parser.header.metadata.get("llama.block_count")
+                         .or_else(|| parser.header.metadata.get("bitnet.block_count"))
                          .and_then(Self::extract_int)
                          .unwrap_or(32);
         let head_dim = n_embd / n_heads;
