@@ -104,13 +104,17 @@ impl AegisEngine {
             }
         }
 
-        self.scheduler.post_step_cleanup();
-        
         // Filter outputs to only return generated tokens, not prefill dummy tokens
-        outputs.into_iter().filter(|(seq_id, _)| {
-            let seq = self.scheduler.active_seqs.iter().find(|s| s.seq_id == *seq_id).unwrap();
-            seq.generated_tokens > 0
-        }).collect()
+        let filtered_outputs: Vec<(u32, u32)> = outputs.into_iter().filter(|(seq_id, _)| {
+            if let Some(seq) = self.scheduler.active_seqs.iter().find(|s| s.seq_id == *seq_id) {
+                seq.generated_tokens > 0
+            } else {
+                false
+            }
+        }).collect();
+
+        self.scheduler.post_step_cleanup();
+        filtered_outputs
     }
 
     fn step_batch(&self, sequences: &[SequenceState]) -> Vec<(u32, u32)> {
