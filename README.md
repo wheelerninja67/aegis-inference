@@ -27,8 +27,8 @@ Aegis is built for extreme edge-compute. To prove you do not need a massive GPU 
 |--------|----------|------|-----------------|----------------|
 | **Aegis** | Apple M2 Max | TBA | TBA | TBA |
 | llama.cpp | Apple M2 Max | TBA | TBA | TBA |
-| **Aegis** | ThinkPad T480 | **~45ms** | **~60 t/s** | **815 MB** |
-| llama.cpp | ThinkPad T480 | ~120ms | ~25 t/s | 1.1 GB |
+| **Aegis** | ThinkPad T480 | **~500ms** | **~4 t/s** | **815 MB** |
+| llama.cpp | ThinkPad T480 | ~1200ms | ~1.5 t/s | 1.1 GB |
 
 *(Note: Aegis completely bypasses standard floating-point operations in favor of dual-bitmask SIMD expansion, leading to the substantial performance delta on CPU-only edge hardware).*
 
