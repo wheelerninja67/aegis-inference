@@ -13,12 +13,12 @@ fn main() {
         let demo_path = "models/demo-1.58b.gguf";
         
         if !std::path::Path::new(demo_path).exists() {
-            println!("[*] Demo model not found locally. Auto-downloading from Hugging Face...");
-            println!("[*] (Note: Downloading 800MB via system curl...)");
+            println!("[*] Demo model not found locally. Auto-downloading Microsoft BitNet 1.58b from Hugging Face...");
+            println!("[*] (Note: Downloading 1.2GB via system curl...)");
             
             let status = std::process::Command::new("curl")
                 .arg("-L")
-                .arg("https://huggingface.co/wheelerninja67/aegis-demo/resolve/main/demo-1.58b.gguf")
+                .arg("https://huggingface.co/microsoft/bitnet-b1.58-2B-4T-gguf/resolve/main/ggml-model-i2_s.gguf")
                 .arg("-o")
                 .arg(demo_path)
                 .status()
