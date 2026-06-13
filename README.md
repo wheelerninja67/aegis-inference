@@ -15,13 +15,17 @@ By mapping 2-bit quantized weights directly to CPU registers using branchless du
 
 ## Performance Benchmarks (Aegis vs llama.cpp)
 
-*Hardware: Standard Intel i7 Laptop (No GPU)*
+*Hardware: Community Crowdsourced*
 *Model: 1.58-bit Ternary Demo Model (800MB)*
 
-| Engine | TTFT (Time to First Token) | Tokens / Second | Peak RAM Usage | CPU Utilization |
-|--------|----------------------------|-----------------|----------------|-----------------|
-| **Aegis** | **~45ms** | **~60 t/s** | **815 MB** | **85%** |
-| llama.cpp | ~120ms | ~25 t/s | 1.1 GB | 98% |
+> **Help Wanted:** We are actively collecting benchmark data across different edge devices (M-Series Mac, Intel, AMD). Please run `./benchmark.sh` and submit your logs!
+
+| Engine | Hardware | TTFT | Tokens / Second | Peak RAM Usage |
+|--------|----------|------|-----------------|----------------|
+| **Aegis** | Apple M2 Max | TBA | TBA | TBA |
+| llama.cpp | Apple M2 Max | TBA | TBA | TBA |
+| **Aegis** | Intel Core i7 | **~45ms** | **~60 t/s** | **815 MB** |
+| llama.cpp | Intel Core i7 | ~120ms | ~25 t/s | 1.1 GB |
 
 *(Note: Aegis completely bypasses standard floating-point operations in favor of dual-bitmask SIMD expansion, leading to the substantial performance delta on CPU-only edge hardware).*
 
