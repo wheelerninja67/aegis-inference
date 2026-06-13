@@ -242,7 +242,6 @@ impl AegisEngine {
             hidden_states = new_hidden;
         }
 
-        let lm_head = self.get_tensor("output.weight");
         let w_out_norm = self.get_norm_tensor("output_norm.weight");
 
         hidden_states
@@ -252,8 +251,25 @@ impl AegisEngine {
                 let mut normed = hidden.clone();
                 rms_norm_inplace(&mut normed, w_out_norm);
 
-                let normed_i8 = f32_to_i8_absmax(&normed);
-                let mut logits = self.ternary_proj_i8(&normed_i8, lm_head, lm_head.rows);
+                let mut logits = if let Some(lm_head) = self.model.tensors.get("output.weight") {
+                    let normed_i8 = f32_to_i8_absmax(&normed);
+                    self.ternary_proj_i8(&normed_i8, lm_head, lm_head.rows)
+                } else {
+                    // Fallback to tied embeddings using dense f32 dot product
+                    let vocab_size = self.model.embed_table.len() / self.model.n_embd as usize;
+                    let mut fallback_logits = vec![0.0f32; vocab_size];
+                    let n_embd = self.model.n_embd as usize;
+                    
+                    fallback_logits.par_iter_mut().enumerate().for_each(|(v, logit)| {
+                        let mut sum = 0.0f32;
+                        let offset = v * n_embd;
+                        for i in 0..n_embd {
+                            sum += normed[i] * self.model.embed_table[offset + i];
+                        }
+                        *logit = sum;
+                    });
+                    fallback_logits
+                };
                 
                 debug_assert!(logits.iter().all(|x| x.is_finite()));
 
