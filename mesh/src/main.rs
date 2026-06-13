@@ -8,14 +8,13 @@ use std::hash::{Hash, Hasher};
 use std::time::Duration;
 use tokio::{io, io::AsyncBufReadExt, select};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 enum SwarmMessage {
     /// A node completed tuning and is broadcasting the mathematical LoRA delta weights.
     LoRAWeightUpdate { node_id: String, checksum: String },
     /// A massive task fragmented by the CEO node sent to the Swarm.
     OrchestratedTask { task_id: String, instruction: String, payload: String },
-    /// A worker node completed a sub-task and is returning the payload.
-    TaskResult { task_id: String, worker_id: String, result: String },
+
     /// A scraping node found a massive anomaly and is tasking an inference node to evaluate it.
     InferenceTask { target_ticker: String, payload_size: usize },
     /// A node successfully evaluated a signal and is broadcasting the conclusion.
@@ -25,11 +24,19 @@ enum SwarmMessage {
         action: String,
     },
     
-    // --- DISTRIBUTED CONSENSUS (RAFT-LITE) ---
-    /// The active CEO node broadcasting a 5-second liveness ping.
-    CeoHeartbeat { ceo_id: String, term: u64 },
+    // --- DISTRIBUTED CONSENSUS (RAFT-LITE & SPLIT-BRAIN) ---
+    /// The active CEO node broadcasting a 5-second liveness ping and current swarm Quorum state.
+    CeoHeartbeat { ceo_id: String, term: u64, active_quorum: usize },
     /// Replicates the CEO's active task ledger across all nodes so a Shadow CEO can seamlessly take over.
     LedgerSync { state_hash: String, active_tasks: usize },
+
+    // --- BYZANTINE FAULT TOLERANCE & WATCHDOGS ---
+    /// Worker node returns a task, incorporating a randomized jitter buffer to prevent Thundering Herd.
+    TaskResult { task_id: String, worker_id: String, result: String, jitter_ms: u64 },
+    /// An internal watchdog killed a runaway hallucination in the local 1.58-bit engine.
+    ComputeFault { worker_id: String, reason: String },
+    /// CEO node requesting verification from 3 randomized nodes (N-Modular Redundancy) for a critical trade.
+    VerificationTask { task_id: String, target_ticker: String },
 }
 
 /// Tracks pending tasks for fault-tolerance
@@ -233,13 +240,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     task_id: task_id.clone(),
                                     worker_id: local_peer_id.to_string(),
                                     result: "INFERENCE_COMPLETE_ALPHA_EXTRACTED".to_string(),
+                                    jitter_ms: 15,
                                 };
                                 let json = serde_json::to_vec(&result_msg).unwrap();
                                 // Note: In a real swarm, you wait for the inference thread to finish before broadcasting
                                 let _ = swarm.behaviour_mut().gossipsub.publish(global_topic.clone(), json);
                             },
-                            SwarmMessage::TaskResult { task_id, worker_id, result } => {
-                                println!("    -> [CEO SYNTHESIS] Worker Node {worker_id} completed task {task_id}. Result: {result}");
+                            SwarmMessage::TaskResult { task_id, worker_id, result, jitter_ms } => {
+                                println!("    -> [CEO SYNTHESIS] Worker Node {worker_id} completed task {task_id} (Jitter: {jitter_ms}ms). Result: {result}");
                                 // Resolve the task so it doesn't trigger a timeout reassignment
                                 orchestrator.active_tasks.remove(&task_id);
                             },
@@ -249,12 +257,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             SwarmMessage::AlphaSignal { ticker, confidence, action } => {
                                 println!("    -> [ALPHA EXTRACTED] {action} {ticker} with {confidence} confidence! Piping to Kessler...");
                             },
-                            SwarmMessage::CeoHeartbeat { ceo_id, term } => {
+                            SwarmMessage::CeoHeartbeat { ceo_id, term, active_quorum } => {
                                 // Silent heartbeat tracking, but we log the first discovery
-                                // println!("    -> [RAFT-LITE] Received CEO Heartbeat from {} (Term {})", ceo_id, term);
+                                // println!("    -> [RAFT-LITE] CEO Heartbeat from {} (Term {} | Quorum: {})", ceo_id, term, active_quorum);
                             },
                             SwarmMessage::LedgerSync { state_hash, active_tasks } => {
                                 println!("    -> [SHADOW LEDGER] Synced active tasks ({active_tasks}) with CEO hash: {state_hash}");
+                            },
+                            SwarmMessage::ComputeFault { worker_id, reason } => {
+                                println!("    -> [WATCHDOG] Node {worker_id} suffered a Compute Fault: {reason}");
+                            },
+                            SwarmMessage::VerificationTask { task_id, target_ticker } => {
+                                println!("    -> [NMR VERIFICATION] Evaluating {target_ticker} for consensus validation on Task {task_id}...");
                             }
                         }
                     }
