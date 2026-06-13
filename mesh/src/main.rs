@@ -26,9 +26,18 @@ enum SwarmMessage {
     },
 }
 
-/// The CEO Node logic that fragments tasks
+/// Tracks pending tasks for fault-tolerance
+#[derive(Debug, Clone)]
+struct PendingTask {
+    message: SwarmMessage,
+    assigned_worker: Option<String>,
+    dispatched_at: std::time::Instant,
+    timeout_secs: u64,
+}
+
+/// The CEO Node logic that fragments tasks and handles network faults
 struct SwarmOrchestrator {
-    active_tasks: std::collections::HashMap<String, Vec<String>>,
+    active_tasks: std::collections::HashMap<String, PendingTask>,
 }
 
 impl SwarmOrchestrator {
@@ -40,8 +49,6 @@ impl SwarmOrchestrator {
     fn fragment_directive(&mut self, directive: &str) -> Vec<SwarmMessage> {
         println!("[CEO] Fragmenting Directive: '{}'", directive);
         
-        // In a real scenario, the local 1.58-bit model would do this fragmentation dynamically.
-        // For the protocol structure, we mock the deterministic JSON breakdown.
         let sub_tasks = vec![
             SwarmMessage::OrchestratedTask {
                 task_id: "T-01".to_string(),
@@ -60,8 +67,31 @@ impl SwarmOrchestrator {
             }
         ];
 
-        self.active_tasks.insert("MASTER_DIRECTIVE".to_string(), vec![]);
+        for task in &sub_tasks {
+            if let SwarmMessage::OrchestratedTask { task_id, .. } = task {
+                self.active_tasks.insert(task_id.clone(), PendingTask {
+                    message: task.clone(),
+                    assigned_worker: None,
+                    dispatched_at: std::time::Instant::now(),
+                    timeout_secs: 45, // 45 seconds before assuming the node thermal throttled or died
+                });
+            }
+        }
         sub_tasks
+    }
+
+    /// Scan for dead nodes and return tasks that need to be aggressively reassigned
+    fn check_timeouts(&mut self) -> Vec<SwarmMessage> {
+        let mut to_reassign = Vec::new();
+        for (id, task) in self.active_tasks.iter_mut() {
+            if task.dispatched_at.elapsed().as_secs() > task.timeout_secs {
+                println!("[CEO-FAULT] Task {} timed out! Worker {:?} likely dropped. Aggressive reassignment triggered.", id, task.assigned_worker);
+                task.dispatched_at = std::time::Instant::now();
+                task.assigned_worker = None;
+                to_reassign.push(task.message.clone());
+            }
+        }
+        to_reassign
     }
 }
 
@@ -204,6 +234,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             },
                             SwarmMessage::TaskResult { task_id, worker_id, result } => {
                                 println!("    -> [CEO SYNTHESIS] Worker Node {worker_id} completed task {task_id}. Result: {result}");
+                                // Resolve the task so it doesn't trigger a timeout reassignment
+                                orchestrator.active_tasks.remove(&task_id);
                             },
                             SwarmMessage::InferenceTask { target_ticker, payload_size } => {
                                 println!("    -> [TASK DELEGATED] Scraper requested inference on {target_ticker} ({payload_size} bytes). Running matrices...");
