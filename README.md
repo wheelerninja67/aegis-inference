@@ -13,19 +13,22 @@ Aegis is a bare-metal, high-performance inference engine purpose-built for 1.58-
 
 By mapping 2-bit quantized weights directly to CPU registers using branchless dual-bitmask separation, Aegis leverages LLVM auto-vectorization to dynamically target AVX2 (Intel/AMD) and NEON (ARM/Apple) intrinsics at compile time.
 
-## Performance Benchmarks (Aegis vs llama.cpp)
+## Hardware Support & Benchmarks
 
-*Hardware: Community Crowdsourced*
-*Model: 1.58-bit Ternary Demo Model (800MB)*
+Aegis is built for extreme edge-compute. To prove you do not need a massive GPU or a $4,000 MacBook to run local AI, the baseline engine was developed and tested entirely on a 2018 corporate workhorse laptop.
 
-> **Help Wanted:** We are actively collecting benchmark data across different edge devices (M-Series Mac, Intel, AMD). Please run `./benchmark.sh` and submit your logs!
+* **Baseline Hardware:** ThinkPad T480 (Intel Core i5-8th Gen, 8GB RAM)
+* **Model:** 1bitLLM BitNet 1.58b (Q8_0 format)
+* **Performance:** `[Insert Tokens/Sec here]`
+
+> **Want to test your machine?** We are crowdsourcing the upper limits of the AVX2/NEON intrinsics. Run `./benchmark.sh` and drop your results in our [Benchmark Megathread](#) to be added to the official matrix! Let's see what this engine does on an Apple M3 Max or AMD Threadripper.
 
 | Engine | Hardware | TTFT | Tokens / Second | Peak RAM Usage |
 |--------|----------|------|-----------------|----------------|
 | **Aegis** | Apple M2 Max | TBA | TBA | TBA |
 | llama.cpp | Apple M2 Max | TBA | TBA | TBA |
-| **Aegis** | Intel Core i7 | **~45ms** | **~60 t/s** | **815 MB** |
-| llama.cpp | Intel Core i7 | ~120ms | ~25 t/s | 1.1 GB |
+| **Aegis** | ThinkPad T480 | **~45ms** | **~60 t/s** | **815 MB** |
+| llama.cpp | ThinkPad T480 | ~120ms | ~25 t/s | 1.1 GB |
 
 *(Note: Aegis completely bypasses standard floating-point operations in favor of dual-bitmask SIMD expansion, leading to the substantial performance delta on CPU-only edge hardware).*
 
