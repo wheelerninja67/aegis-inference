@@ -23,19 +23,22 @@ else
 fi
 
 echo "[*] Detecting latest GitHub release..."
-LATEST_URL=$(curl -s https://api.github.com/repos/wheelerninja67/aegis-inference/releases/latest | grep "browser_download_url.*$TARGET" | cut -d : -f 2,3 | tr -d \")
+LATEST_URL=$(curl -s https://api.github.com/repos/wheelerninja67/aegis-inference/releases/latest | grep "browser_download_url.*$TARGET" | cut -d '"' -f 4)
 
 if [ -z "$LATEST_URL" ]; then
     echo "[-] Could not find release artifact for $TARGET. Are there any releases published?"
     exit 1
 fi
 
-echo "[*] Downloading $TARGET..."
+echo "[*] Downloading $TARGET from $LATEST_URL..."
 curl -sL "$LATEST_URL" -o /tmp/aegis_inference
 chmod +x /tmp/aegis_inference
 
-echo "[*] Installing to /usr/local/bin/aegis..."
-sudo mv /tmp/aegis_inference /usr/local/bin/aegis
+INSTALL_DIR="$HOME/.local/bin"
+mkdir -p "$INSTALL_DIR"
+
+echo "[*] Installing to $INSTALL_DIR/aegis..."
+mv /tmp/aegis_inference "$INSTALL_DIR/aegis"
 
 echo "[+] Installation successful."
-echo "Run 'aegis --help' to get started."
+echo "Run 'aegis --help' to get started. Make sure $INSTALL_DIR is in your PATH."
