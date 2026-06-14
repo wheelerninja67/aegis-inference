@@ -10,7 +10,9 @@ use aegis::gguf::weight_loader::AegisModel;
 use aegis::simd::dispatch::vtable;
 
 fn main() {
-    let path = std::env::args().nth(1).expect("usage: validate_weights <model.gguf>");
+    let path = std::env::args()
+        .nth(1)
+        .expect("usage: validate_weights <model.gguf>");
 
     println!("[validate] opening {}...", path);
     let model = AegisModel::load_gguf(&path).expect("load failed");
@@ -47,7 +49,7 @@ fn main() {
         }
 
         // --- SIMD self-consistency check on first row ---
-        let test_cols = tensor.cols_raw.min(64); 
+        let test_cols = tensor.cols_raw.min(64);
         let activations: Vec<i8> = (0..test_cols).map(|i| (i % 7) as i8 - 3).collect();
         let mut padded_acts = vec![0i8; tensor.cols];
         padded_acts[..test_cols].copy_from_slice(&activations);
@@ -55,8 +57,8 @@ fn main() {
         // Scalar reference
         let mut scalar_dot: i32 = 0;
         for col in 0..tensor.cols_raw {
-            let bit_pos = col; 
-            let word_idx  = bit_pos / 64;
+            let bit_pos = col;
+            let word_idx = bit_pos / 64;
             let bit_shift = bit_pos % 64;
             let pm = unsafe { *tensor.pos_mask.add(word_idx) };
             let nm = unsafe { *tensor.neg_mask.add(word_idx) };
@@ -78,7 +80,10 @@ fn main() {
         };
 
         if scalar_dot == simd_dot {
-            println!("  v SIMD consistency: scalar={} simd={}", scalar_dot, simd_dot);
+            println!(
+                "  v SIMD consistency: scalar={} simd={}",
+                scalar_dot, simd_dot
+            );
         } else {
             eprintln!(
                 "  x SIMD MISMATCH on tensor '{}': scalar={} simd={}",

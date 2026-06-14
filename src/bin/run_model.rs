@@ -11,11 +11,13 @@ fn main() {
         println!("[*] Aegis Demo Mode Activated");
         std::fs::create_dir_all("models").unwrap_or(());
         let demo_path = "models/demo-1.58b.gguf";
-        
+
         if !std::path::Path::new(demo_path).exists() {
-            println!("[*] Demo model not found locally. Auto-downloading 1bitLLM BitNet 1.58b (Q8_0 format) from Hugging Face...");
+            println!(
+                "[*] Demo model not found locally. Auto-downloading 1bitLLM BitNet 1.58b (Q8_0 format) from Hugging Face..."
+            );
             println!("[*] (Note: Downloading 800MB via system curl...)");
-            
+
             let status = std::process::Command::new("curl")
                 .arg("-L")
                 .arg("https://huggingface.co/RichardErkhov/1bitLLM_-_bitnet_b1_58-large-gguf/resolve/main/bitnet_b1_58-large.Q8_0.gguf")
@@ -23,7 +25,7 @@ fn main() {
                 .arg(demo_path)
                 .status()
                 .expect("Failed to execute curl command. Is curl installed?");
-                
+
             if !status.success() {
                 eprintln!("[-] Failed to download the demo model.");
                 std::process::exit(1);
@@ -33,31 +35,35 @@ fn main() {
     }
 
     println!("[*] Initializing Aegis Engine with model: {}", model_path);
-    
+
     match AegisEngine::new(&model_path, 1024) {
         Ok(mut engine) => {
             println!("[+] Engine loaded successfully!");
-            
+
             // Real ChatML prompt for TinyLlama
             let prompt_text = "<|im_start|>user\nWhat is the capital of France?<|im_end|>\n<|im_start|>assistant\n";
             println!("\n[USER] What is the capital of France?");
-            
-            let prompt_tokens = engine.model.tokenizer.encode(prompt_text).expect("Tokenizer encoding failed");
-            
+
+            let prompt_tokens = engine
+                .model
+                .tokenizer
+                .encode(prompt_text)
+                .expect("Tokenizer encoding failed");
+
             // Queue the sequence in the scheduler (Request ID 1, 128 max new tokens)
             engine.add_sequence(1, prompt_tokens, 128);
-            
+
             print!("[AEGIS] ");
             std::io::stdout().flush().unwrap();
-            
+
             let mut generated = 0;
             while generated < 128 {
                 let outputs = engine.step_forward();
-                
+
                 if engine.scheduler.running_sequences().is_empty() {
                     break; // All sequences finished or stopped
                 }
-                
+
                 for (_seq_id, token_id) in outputs {
                     if engine.model.tokenizer.is_eos(token_id) {
                         generated = 128; // force break

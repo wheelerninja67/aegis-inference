@@ -1,16 +1,15 @@
 #![feature(portable_simd)]
 
-pub mod simd;
-pub mod kv_cache;
 pub mod attention;
-pub mod gguf;
-pub mod scheduler;
 pub mod engine;
 pub mod ffi;
+pub mod gguf;
+pub mod kv_cache;
+pub mod scheduler;
+pub mod simd;
 pub mod tokenizer;
 
 pub mod architecture;
-
 
 #[cfg(target_arch = "aarch64")]
 use std::arch::aarch64::*;
@@ -57,35 +56,35 @@ impl TernaryTensor {
 
         use rayon::prelude::*;
         let mask_cols = self.cols / 8; // 8 weights packed per mask byte
-        
+
         output.par_iter_mut().enumerate().for_each(|(r, out_val)| {
             let row_offset = r * mask_cols;
-            
+
             // V6 Bitmask Separation:
             // We calculate the dot product by separating the addition of positive weights
             // from the subtraction of negative weights. This avoids multiplication entirely.
             let mut sum_pos = 0_i32;
             let mut sum_neg = 0_i32;
-            
+
             // Fast Branchless LUT for bit expansion
             // This allows LLVM to auto-vectorize into AVX2 instructions without writing raw unsafe _mm256
             for c in 0..mask_cols {
                 let p_byte = self.pos_mask[row_offset + c] as usize;
                 let n_byte = self.neg_mask[row_offset + c] as usize;
-                
+
                 let act_chunk = &activations[(c * 8)..((c + 1) * 8)];
-                
+
                 // Branchless evaluation: (1 << i) check
                 for i in 0..8 {
                     let act = act_chunk[i] as i32;
                     let p_mask = ((p_byte >> i) & 1) as i32;
                     let n_mask = ((n_byte >> i) & 1) as i32;
-                    
+
                     sum_pos += act * p_mask;
                     sum_neg += act * n_mask;
                 }
             }
-            
+
             // Final horizontal reduction: sum_pos - sum_neg
             *out_val = ((sum_pos - sum_neg) as f32) * self.scale;
         });

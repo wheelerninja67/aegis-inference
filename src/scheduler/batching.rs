@@ -1,4 +1,4 @@
-use crate::kv_cache::page_pool::{PagePool, PAGE_TOKENS};
+use crate::kv_cache::page_pool::{PAGE_TOKENS, PagePool};
 use std::sync::Arc;
 
 pub struct SequenceRequest {
@@ -110,7 +110,7 @@ impl Scheduler {
         let mut i = 0;
         while i < self.active_seqs.len() {
             let seq = &mut self.active_seqs[i];
-            
+
             if seq.generated_tokens >= seq.max_new_tokens {
                 seq.status = SequenceStatus::Finished;
             }

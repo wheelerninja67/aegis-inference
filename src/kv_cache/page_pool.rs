@@ -1,4 +1,4 @@
-use std::alloc::{alloc_zeroed, Layout};
+use std::alloc::{Layout, alloc_zeroed};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// 16 tokens per page.
@@ -51,19 +51,22 @@ impl PagePool {
         let slab_len = page_stride * total_pages;
 
         // Align to 2MB for transparent huge-page eligibility (THP)
-        let layout = Layout::from_size_align(slab_len, 2 * 1024 * 1024)
-            .expect("layout failure");
+        let layout = Layout::from_size_align(slab_len, 2 * 1024 * 1024).expect("layout failure");
 
         let slab = unsafe { alloc_zeroed(layout) as *mut i8 };
         assert!(!slab.is_null(), "page pool allocation failed");
 
         let bitmap_words = total_pages.div_ceil(64);
         let mut free_bitmap: Vec<AtomicU64> = Vec::with_capacity(bitmap_words);
-        
+
         // Mark all pages as free (bit = 1)
         for i in 0..bitmap_words {
             let remaining = total_pages.saturating_sub(i * 64);
-            let bits = if remaining >= 64 { u64::MAX } else { (1u64 << remaining) - 1 };
+            let bits = if remaining >= 64 {
+                u64::MAX
+            } else {
+                (1u64 << remaining) - 1
+            };
             free_bitmap.push(AtomicU64::new(bits));
         }
 
@@ -83,11 +86,16 @@ impl PagePool {
         for (word_idx, atomic_word) in self.free_bitmap.iter().enumerate() {
             let mut word = atomic_word.load(Ordering::Relaxed);
             loop {
-                if word == 0 { break; } // no free pages in this word
+                if word == 0 {
+                    break;
+                } // no free pages in this word
                 let bit_idx = word.trailing_zeros() as usize; // index of first free page
                 let new_word = word & !(1u64 << bit_idx); // clear the bit (mark as used)
                 match atomic_word.compare_exchange_weak(
-                    word, new_word, Ordering::AcqRel, Ordering::Relaxed
+                    word,
+                    new_word,
+                    Ordering::AcqRel,
+                    Ordering::Relaxed,
                 ) {
                     Ok(_) => {
                         let page_idx = word_idx * 64 + bit_idx;

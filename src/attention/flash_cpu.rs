@@ -1,8 +1,8 @@
-use crate::kv_cache::page_pool::{PagePool, PAGE_TOKENS};
+use crate::kv_cache::page_pool::{PAGE_TOKENS, PagePool};
 
 /// CPU Flash Attention with paged KV.
 /// Processes one attention head at a time (call in parallel across heads via Rayon).
-/// 
+///
 /// Algorithm: Online softmax (Milakov 2018) with tiled KV reads.
 /// Tile size TILE_K chosen so that: TILE_K x head_dim x sizeof(i8) <= L2_SIZE / 4
 ///
@@ -21,19 +21,19 @@ pub struct FlashAttnOutput {
 /// n_kv_tokens: how many KV tokens are valid for this sequence
 /// head_dim: dimension of each attention head
 pub unsafe fn flash_attn_paged(
-    q:           &[f32],
-    pool:        &PagePool,
+    q: &[f32],
+    pool: &PagePool,
     block_table: &[u32],
     n_kv_tokens: usize,
-    head_dim:    usize,
-    num_heads:   usize,
-    head_idx:    usize,
+    head_dim: usize,
+    num_heads: usize,
+    head_idx: usize,
 ) -> Vec<f32> {
     debug_assert_eq!(q.len(), head_dim);
 
     // Online softmax state
     let mut m: f32 = f32::NEG_INFINITY; // running max of QK scores
-    let mut l: f32 = 0.0;              // running sum of exp(score - m)
+    let mut l: f32 = 0.0; // running sum of exp(score - m)
     let mut out = vec![0.0f32; head_dim]; // accumulator for weighted V sum
 
     // Process KV tokens in tiles of TILE_K
@@ -56,8 +56,8 @@ pub unsafe fn flash_attn_paged(
                 // Get K pointer for this token, this head
                 let k_base = pool.slab.add(
                     page_idx as usize * pool.page_stride
-                    + slot * num_heads * head_dim
-                    + head_idx * head_dim,
+                        + slot * num_heads * head_dim
+                        + head_idx * head_dim,
                 );
 
                 // Dot product: q (f32) . k (i8) with dequant scale
@@ -75,7 +75,9 @@ pub unsafe fn flash_attn_paged(
 
         // Rescale existing accumulator: out *= exp(m_old - m_new), l *= exp(m_old - m_new)
         let rescale = (m - m_new).exp();
-        for o in out.iter_mut() { *o *= rescale; }
+        for o in out.iter_mut() {
+            *o *= rescale;
+        }
         l *= rescale;
         m = m_new;
 
@@ -107,6 +109,8 @@ pub unsafe fn flash_attn_paged(
 
     // Normalize
     let l_inv = 1.0 / l;
-    for o in out.iter_mut() { *o *= l_inv; }
+    for o in out.iter_mut() {
+        *o *= l_inv;
+    }
     out
 }

@@ -1,4 +1,4 @@
-use std::alloc::{alloc, dealloc, Layout};
+use std::alloc::{Layout, alloc, dealloc};
 
 /// A custom allocator that bypasses standard OS heap allocation.
 /// It forces the memory to align strictly with the CPU's L3 Cache boundaries.
@@ -14,7 +14,7 @@ impl CacheLockedAllocator {
         // 32-byte alignment is mathematically required for optimal _mm256 operations
         let layout = Layout::from_size_align(size, 32).expect("Invalid memory layout alignment");
         let ptr = unsafe { alloc(layout) as *mut i8 };
-        
+
         if ptr.is_null() {
             panic!("FATAL: OS refused to allocate cache-locked memory boundary.");
         }
@@ -110,15 +110,15 @@ impl TransformerBlock {
     pub fn forward(&self, hidden_state: &mut [f32], _mmap_payload: &[u8], _pos: usize) {
         // Step 1: Self-Attention (Query, Key, Value extraction)
         // Normally we use our AVX2 router here to multiply the hidden state by the Q/K/V tensors.
-        
+
         // Step 2: Apply RoPE to Q and K
         // aegis_inference::architecture::apply_rope(q, k, pos, head_dim);
-        
+
         // Step 3: Compute Attention Scores and Softmax
         // compute_softmax(attention_scores);
-        
+
         // Step 4: Multiply by Value (V) and project out (O)
-        
+
         // Step 5: Feed-Forward Network (SwiGLU)
         // Passes the output of attention into the FFN gate.
         for val in hidden_state.iter_mut() {
@@ -155,10 +155,10 @@ impl KvCache {
         // Calculate the physical index via modulo arithmetic to loop the buffer
         let physical_index = self.current_seq_len % self.max_seq_len;
         let offset = physical_index * self.head_dim;
-        
+
         self.keys[offset..offset + self.head_dim].copy_from_slice(new_k);
         self.values[offset..offset + self.head_dim].copy_from_slice(new_v);
-        
+
         self.current_seq_len += 1;
     }
 }
@@ -197,7 +197,10 @@ impl AegisEngine {
             kv_cache: KvCache::new(context_window, 128), // 128 head_dim assumption
             is_finished: false,
         });
-        println!("[+] Sequence {} injected into Continuous Batching Pool.", seq_id);
+        println!(
+            "[+] Sequence {} injected into Continuous Batching Pool.",
+            seq_id
+        );
     }
 
     /// The V3 Continuous Batching Inference Loop.
@@ -220,7 +223,7 @@ impl AegisEngine {
             }
 
             let pos = seq.kv_cache.current_seq_len;
-            let mut hidden_state = vec![0.0f32; 4096]; 
+            let mut hidden_state = vec![0.0f32; 4096];
 
             // Rip the token through every layer
             for layer in &self.layers {
@@ -234,7 +237,7 @@ impl AegisEngine {
 
             // Simulate next token generation (e.g., reaching an EOS token stops it)
             seq.current_token += 1;
-            
+
             // Artificial stop condition for the PoC
             if pos >= 10 {
                 seq.is_finished = true;
@@ -247,7 +250,7 @@ impl AegisEngine {
 }
 
 /// The Transformer block optimized strictly for x86/ARM CPUs.
-/// Because the weights are ternary (-1, 0, 1), an entire 7B parameter layer 
+/// Because the weights are ternary (-1, 0, 1), an entire 7B parameter layer
 /// only takes up a few megabytes, fitting perfectly into the CPU L3 cache.
 pub struct L3OptimizedTransformerLayer {
     pub attention_weights: CacheLockedAllocator,

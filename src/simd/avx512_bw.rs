@@ -5,7 +5,7 @@ use std::arch::x86_64::*;
 /// pos_mask and neg_mask are bit-packed: bit j of mask word i = weight (i*64 + j)
 #[target_feature(enable = "avx512f,avx512bw")]
 pub unsafe fn ternary_dot(
-    acts:     *const i8,
+    acts: *const i8,
     pos_mask: *const u64,
     neg_mask: *const u64,
     n_weights: usize, // must be multiple of 64
@@ -57,7 +57,7 @@ pub unsafe fn ternary_dot(
             acc0 = _mm512_add_epi32(acc0, _mm512_madd_epi16(diff_lo, ones_i16));
             acc1 = _mm512_add_epi32(acc1, _mm512_madd_epi16(diff_hi, ones_i16));
 
-            a_ptr  = a_ptr.add(64);
+            a_ptr = a_ptr.add(64);
             pm_ptr = pm_ptr.add(1);
             nm_ptr = nm_ptr.add(1);
         }
@@ -71,12 +71,12 @@ pub unsafe fn ternary_dot(
 // Temporary stub for batch processing
 #[target_feature(enable = "avx512f,avx512bw")]
 pub unsafe fn ternary_dot_batch(
-    _acts:      *const i8,
+    _acts: *const i8,
     _pos_masks: *const u64,
     _neg_masks: *const u64,
     _n_weights: usize,
-    _m_rows:    usize,
-    _out:       *mut i32,
+    _m_rows: usize,
+    _out: *mut i32,
 ) {
     // To be implemented in Phase 6: Continuous Batching
 }

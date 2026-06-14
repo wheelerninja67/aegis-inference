@@ -1,12 +1,12 @@
-use tokenizers::{Tokenizer, AddedToken};
 use crate::gguf::parser::{GgufParser, MetadataValue};
+use tokenizers::{AddedToken, Tokenizer};
 
-pub const EOS_TOKEN_ID: u32 = 2;  // LLaMA-family universal EOS
+pub const EOS_TOKEN_ID: u32 = 2; // LLaMA-family universal EOS
 pub const BOS_TOKEN_ID: u32 = 1;
 pub const UNK_TOKEN_ID: u32 = 0;
 
 pub struct AegisTokenizer {
-    inner:    Tokenizer,
+    inner: Tokenizer,
     // Reverse map: token_id → string (for decoding SSE output to text)
     id_to_token: Vec<String>,
     pub vocab_size: u32,
@@ -55,8 +55,8 @@ impl AegisTokenizer {
         let vocab_size = tokens.len() as u32;
         assert_eq!(tokens.len(), scores.len(), "token/score count mismatch");
 
-        use tokenizers::models::bpe::{BpeBuilder};
         use std::collections::HashMap;
+        use tokenizers::models::bpe::BpeBuilder;
 
         let mut vocab: HashMap<String, u32> = HashMap::with_capacity(vocab_size as usize);
         let mut byte_fallback_map: HashMap<u8, String> = HashMap::new();
@@ -65,9 +65,10 @@ impl AegisTokenizer {
             vocab.insert(token.clone(), id as u32);
 
             if token_types[id] == 6
-                && let Some(byte_val) = parse_byte_token(token) {
-                    byte_fallback_map.insert(byte_val, token.clone());
-                }
+                && let Some(byte_val) = parse_byte_token(token)
+            {
+                byte_fallback_map.insert(byte_val, token.clone());
+            }
         }
 
         let merges = reconstruct_merges_from_scores(&tokens, &scores);
@@ -79,22 +80,18 @@ impl AegisTokenizer {
             .build()
             .map_err(|e| format!("BPE build failed: {}", e))?;
 
+        use tokenizers::decoders::metaspace::Metaspace as MetaspaceDecoder;
         use tokenizers::pre_tokenizers::metaspace::Metaspace as MetaspacePreTokenizer;
         use tokenizers::pre_tokenizers::metaspace::PrependScheme;
-        use tokenizers::decoders::metaspace::Metaspace as MetaspaceDecoder;
 
         let mut tokenizer = Tokenizer::new(bpe);
 
-        tokenizer.with_pre_tokenizer(
-            tokenizers::PreTokenizerWrapper::Metaspace(
-                MetaspacePreTokenizer::new('▁', PrependScheme::First, true)
-            )
-        );
-        tokenizer.with_decoder(
-            tokenizers::DecoderWrapper::Metaspace(
-                MetaspaceDecoder::new('▁', PrependScheme::First, true)
-            )
-        );
+        tokenizer.with_pre_tokenizer(tokenizers::PreTokenizerWrapper::Metaspace(
+            MetaspacePreTokenizer::new('▁', PrependScheme::First, true),
+        ));
+        tokenizer.with_decoder(tokenizers::DecoderWrapper::Metaspace(
+            MetaspaceDecoder::new('▁', PrependScheme::First, true),
+        ));
 
         tokenizer.add_special_tokens(&[
             AddedToken::from(tokens[BOS_TOKEN_ID as usize].clone(), true),
@@ -103,11 +100,16 @@ impl AegisTokenizer {
 
         let id_to_token = tokens;
 
-        Ok(AegisTokenizer { inner: tokenizer, id_to_token, vocab_size })
+        Ok(AegisTokenizer {
+            inner: tokenizer,
+            id_to_token,
+            vocab_size,
+        })
     }
 
     pub fn encode(&self, text: &str) -> Result<Vec<u32>, Box<dyn std::error::Error>> {
-        let encoding = self.inner
+        let encoding = self
+            .inner
             .encode(text, false)
             .map_err(|e| format!("tokenize failed: {}", e))?;
 
@@ -141,22 +143,24 @@ fn parse_byte_token(s: &str) -> Option<u8> {
     u8::from_str_radix(inner, 16).ok()
 }
 
-fn reconstruct_merges_from_scores(
-    tokens: &[String],
-    scores: &[f32],
-) -> Vec<(String, String)> {
-    let token_set: std::collections::HashSet<&str> =
-        tokens.iter().map(|s| s.as_str()).collect();
+fn reconstruct_merges_from_scores(tokens: &[String], scores: &[f32]) -> Vec<(String, String)> {
+    let token_set: std::collections::HashSet<&str> = tokens.iter().map(|s| s.as_str()).collect();
 
     let mut merges: Vec<(String, String, f32)> = Vec::new();
 
     for (id, token) in tokens.iter().enumerate() {
-        if token.len() < 2 { continue; }
-        if token.starts_with('<') && token.ends_with('>') { continue; }
+        if token.len() < 2 {
+            continue;
+        }
+        if token.starts_with('<') && token.ends_with('>') {
+            continue;
+        }
 
         for split_pos in 1..token.len() {
-            if !token.is_char_boundary(split_pos) { continue; }
-            let left  = &token[..split_pos];
+            if !token.is_char_boundary(split_pos) {
+                continue;
+            }
+            let left = &token[..split_pos];
             let right = &token[split_pos..];
             if token_set.contains(left) && token_set.contains(right) {
                 merges.push((left.to_string(), right.to_string(), scores[id]));
