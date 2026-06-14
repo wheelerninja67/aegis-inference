@@ -3,7 +3,7 @@ use std::os::raw::{c_char, c_void};
 use crate::engine::AegisEngine;
 
 #[unsafe(no_mangle)]
-pub extern "C" fn aegis_init(model_path: *const c_char, total_kv_pages: usize) -> *mut c_void {
+pub unsafe extern "C" fn aegis_init(model_path: *const c_char, total_kv_pages: usize) -> *mut c_void {
     let c_str = unsafe {
         assert!(!model_path.is_null());
         CStr::from_ptr(model_path)
@@ -22,7 +22,7 @@ pub extern "C" fn aegis_init(model_path: *const c_char, total_kv_pages: usize) -
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn aegis_add_sequence(
+pub unsafe extern "C" fn aegis_add_sequence(
     engine_ptr: *mut c_void,
     seq_id: u32,
     prompt: *const c_char,
@@ -61,7 +61,7 @@ pub struct StepBatchResult {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn aegis_step_forward(engine_ptr: *mut c_void) -> StepBatchResult {
+pub unsafe extern "C" fn aegis_step_forward(engine_ptr: *mut c_void) -> StepBatchResult {
     let engine = unsafe { &mut *(engine_ptr as *mut AegisEngine) };
     let outputs = engine.step_forward();
     
@@ -83,7 +83,7 @@ pub extern "C" fn aegis_step_forward(engine_ptr: *mut c_void) -> StepBatchResult
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn aegis_free_batch_result(batch: StepBatchResult) {
+pub unsafe extern "C" fn aegis_free_batch_result(batch: StepBatchResult) {
     if batch.count == 0 || batch.results.is_null() { return; }
     let results = unsafe { Vec::from_raw_parts(batch.results, batch.count, batch.count) };
     for res in results {
@@ -94,7 +94,7 @@ pub extern "C" fn aegis_free_batch_result(batch: StepBatchResult) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn aegis_free(engine_ptr: *mut c_void) {
+pub unsafe extern "C" fn aegis_free(engine_ptr: *mut c_void) {
     if !engine_ptr.is_null() {
         unsafe {
             let _ = Box::from_raw(engine_ptr as *mut AegisEngine);

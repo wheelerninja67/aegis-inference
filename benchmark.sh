@@ -27,7 +27,7 @@ fi
 echo "[*] Benchmarking Aegis Inference Engine..."
 # Time the engine run
 start_time=$(date +%s%3N)
-./target/release/aegis_inference --demo > aegis_bench.log 2>&1
+cargo run --release --bin run_model -- --demo > aegis_bench.log 2>&1
 end_time=$(date +%s%3N)
 aegis_time=$((end_time - start_time))
 

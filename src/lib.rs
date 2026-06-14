@@ -37,7 +37,7 @@ pub struct TernaryTensor {
 
 impl TernaryTensor {
     pub fn new(rows: usize, cols: usize, scale: f32) -> Self {
-        let mask_len = (cols + 7) / 8;
+        let mask_len = cols.div_ceil(8);
         Self {
             rows,
             cols,

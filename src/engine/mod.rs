@@ -9,7 +9,7 @@ use crate::simd::dispatch::vtable;
 use crate::scheduler::batching::{Scheduler, SequenceRequest, SequenceState};
 
 #[inline]
-fn argmax_f32(logits: &mut [f32], generated_tokens: &[u32], penalty: f32) -> u32 {
+fn argmax_f32(logits: &mut [f32], generated_tokens: &[u32], _penalty: f32) -> u32 {
     let mut penalized_logits = logits.to_vec();
     // Aggressive Presence Penalty
     for &tok in generated_tokens {
@@ -19,11 +19,10 @@ fn argmax_f32(logits: &mut [f32], generated_tokens: &[u32], penalty: f32) -> u32
         }
     }
     // Hard ban on the immediately preceding token to prevent consecutive stutter
-    if let Some(&last_tok) = generated_tokens.last() {
-        if (last_tok as usize) < penalized_logits.len() {
+    if let Some(&last_tok) = generated_tokens.last()
+        && (last_tok as usize) < penalized_logits.len() {
             penalized_logits[last_tok as usize] = f32::NEG_INFINITY;
         }
-    }
 
     penalized_logits
         .iter()
@@ -210,7 +209,7 @@ impl AegisEngine {
                     let attn_out_i8: Vec<i8> = f32_to_i8_absmax(&attn_out);
                     let proj_out = self.ternary_proj_i8(&attn_out_i8, wo, n_embd);
 
-                    let mut post_attn: Vec<f32> = hidden
+                    let post_attn: Vec<f32> = hidden
                         .iter()
                         .zip(proj_out.iter())
                         .map(|(h, p)| h + p)
@@ -361,7 +360,7 @@ impl AegisEngine {
 #[inline]
 fn f32_to_i8_absmax(x: &[f32]) -> Vec<i8> {
     use std::simd::num::SimdFloat;
-    use std::simd::{f32x8, i8x8, Simd};
+    use std::simd::{f32x8, Simd};
 
     let absmax = absmax_scale(x);
     if absmax < 1e-9 { return vec![0i8; x.len()]; }

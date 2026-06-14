@@ -1,0 +1,492 @@
+   Compiling aegis_inference v0.1.0 (/home/mid/Projects/aegis_inference)
+warning: unused import: `std::ptr`
+ --> src/architecture.rs:2:5
+  |
+2 | use std::ptr;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::f32::consts::PI`
+ --> src/architecture.rs:3:5
+  |
+3 | use std::f32::consts::PI;
+  |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `penalty`
+  --> src/engine/mod.rs:11:61
+   |
+11 | ...enerated_tokens: &[u32], penalty: f32) -> u32 {
+   |                             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_penalty`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> src/engine/mod.rs:212:25
+    |
+212 |                     let mut post_attn: Vec<f32> = hidden
+    |                         ----^^^^^^^^^
+    |                         |
+    |                         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: feature `portable_simd` is declared but not used
+ --> src/lib.rs:1:12
+  |
+1 | #![feature(portable_simd)]
+  |            ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_features)]` (part of `#[warn(unused)]`) on by default
+
+warning: `aegis_inference` (lib) generated 5 warnings (run `cargo fix --lib -p aegis_inference` to apply 4 suggestions)
+    Finished `release` profile [optimized] target(s) in 10.19s
+     Running `target/release/run_model --demo`
+[*] Aegis Demo Mode Activated
+[*] Initializing Aegis Engine with model: models/demo-1.58b.gguf
+[engine] loading model from models/demo-1.58b.gguf...
+[loader] tokenizer: 32002 vocab entries
+[loader] loaded embedding table: 49155072 elements
+[loader] loaded norm tensor: blk.0.attn_norm.weight
+[loader] loading tensor: blk.0.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.0.ffn_down.scale
+[loader] loaded norm tensor: blk.0.ffn_sub_norm.weight
+[loader] loading tensor: blk.0.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.0.ffn_gate.scale
+[loader] loading tensor: blk.0.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.0.ffn_up.scale
+[loader] loaded norm tensor: blk.0.ffn_norm.weight
+[loader] loaded norm tensor: blk.0.attn_sub_norm.weight
+[loader] loading tensor: blk.0.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.0.attn_k.scale
+[loader] loading tensor: blk.0.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.0.attn_output.scale
+[loader] loading tensor: blk.0.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.0.attn_q.scale
+[loader] loading tensor: blk.0.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.0.attn_v.scale
+[loader] loaded norm tensor: blk.1.attn_norm.weight
+[loader] loading tensor: blk.1.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.1.ffn_down.scale
+[loader] loaded norm tensor: blk.1.ffn_sub_norm.weight
+[loader] loading tensor: blk.1.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.1.ffn_gate.scale
+[loader] loading tensor: blk.1.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.1.ffn_up.scale
+[loader] loaded norm tensor: blk.1.ffn_norm.weight
+[loader] loaded norm tensor: blk.1.attn_sub_norm.weight
+[loader] loading tensor: blk.1.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.1.attn_k.scale
+[loader] loading tensor: blk.1.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.1.attn_output.scale
+[loader] loading tensor: blk.1.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.1.attn_q.scale
+[loader] loading tensor: blk.1.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.1.attn_v.scale
+[loader] loaded norm tensor: blk.10.attn_norm.weight
+[loader] loading tensor: blk.10.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.10.ffn_down.scale
+[loader] loaded norm tensor: blk.10.ffn_sub_norm.weight
+[loader] loading tensor: blk.10.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.10.ffn_gate.scale
+[loader] loading tensor: blk.10.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.10.ffn_up.scale
+[loader] loaded norm tensor: blk.10.ffn_norm.weight
+[loader] loaded norm tensor: blk.10.attn_sub_norm.weight
+[loader] loading tensor: blk.10.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.10.attn_k.scale
+[loader] loading tensor: blk.10.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.10.attn_output.scale
+[loader] loading tensor: blk.10.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.10.attn_q.scale
+[loader] loading tensor: blk.10.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.10.attn_v.scale
+[loader] loaded norm tensor: blk.11.attn_norm.weight
+[loader] loading tensor: blk.11.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.11.ffn_down.scale
+[loader] loaded norm tensor: blk.11.ffn_sub_norm.weight
+[loader] loading tensor: blk.11.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.11.ffn_gate.scale
+[loader] loading tensor: blk.11.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.11.ffn_up.scale
+[loader] loaded norm tensor: blk.11.ffn_norm.weight
+[loader] loaded norm tensor: blk.11.attn_sub_norm.weight
+[loader] loading tensor: blk.11.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.11.attn_k.scale
+[loader] loading tensor: blk.11.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.11.attn_output.scale
+[loader] loading tensor: blk.11.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.11.attn_q.scale
+[loader] loading tensor: blk.11.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.11.attn_v.scale
+[loader] loaded norm tensor: blk.12.attn_norm.weight
+[loader] loading tensor: blk.12.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.12.ffn_down.scale
+[loader] loaded norm tensor: blk.12.ffn_sub_norm.weight
+[loader] loading tensor: blk.12.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.12.ffn_gate.scale
+[loader] loading tensor: blk.12.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.12.ffn_up.scale
+[loader] loaded norm tensor: blk.12.ffn_norm.weight
+[loader] loaded norm tensor: blk.12.attn_sub_norm.weight
+[loader] loading tensor: blk.12.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.12.attn_k.scale
+[loader] loading tensor: blk.12.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.12.attn_output.scale
+[loader] loading tensor: blk.12.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.12.attn_q.scale
+[loader] loading tensor: blk.12.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.12.attn_v.scale
+[loader] loaded norm tensor: blk.13.attn_norm.weight
+[loader] loading tensor: blk.13.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.13.ffn_down.scale
+[loader] loaded norm tensor: blk.13.ffn_sub_norm.weight
+[loader] loading tensor: blk.13.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.13.ffn_gate.scale
+[loader] loading tensor: blk.13.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.13.ffn_up.scale
+[loader] loaded norm tensor: blk.13.ffn_norm.weight
+[loader] loaded norm tensor: blk.13.attn_sub_norm.weight
+[loader] loading tensor: blk.13.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.13.attn_k.scale
+[loader] loading tensor: blk.13.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.13.attn_output.scale
+[loader] loading tensor: blk.13.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.13.attn_q.scale
+[loader] loading tensor: blk.13.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.13.attn_v.scale
+[loader] loaded norm tensor: blk.14.attn_norm.weight
+[loader] loading tensor: blk.14.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.14.ffn_down.scale
+[loader] loaded norm tensor: blk.14.ffn_sub_norm.weight
+[loader] loading tensor: blk.14.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.14.ffn_gate.scale
+[loader] loading tensor: blk.14.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.14.ffn_up.scale
+[loader] loaded norm tensor: blk.14.ffn_norm.weight
+[loader] loaded norm tensor: blk.14.attn_sub_norm.weight
+[loader] loading tensor: blk.14.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.14.attn_k.scale
+[loader] loading tensor: blk.14.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.14.attn_output.scale
+[loader] loading tensor: blk.14.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.14.attn_q.scale
+[loader] loading tensor: blk.14.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.14.attn_v.scale
+[loader] loaded norm tensor: blk.15.attn_norm.weight
+[loader] loading tensor: blk.15.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.15.ffn_down.scale
+[loader] loaded norm tensor: blk.15.ffn_sub_norm.weight
+[loader] loading tensor: blk.15.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.15.ffn_gate.scale
+[loader] loading tensor: blk.15.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.15.ffn_up.scale
+[loader] loaded norm tensor: blk.15.ffn_norm.weight
+[loader] loaded norm tensor: blk.15.attn_sub_norm.weight
+[loader] loading tensor: blk.15.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.15.attn_k.scale
+[loader] loading tensor: blk.15.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.15.attn_output.scale
+[loader] loading tensor: blk.15.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.15.attn_q.scale
+[loader] loading tensor: blk.15.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.15.attn_v.scale
+[loader] loaded norm tensor: blk.16.attn_norm.weight
+[loader] loading tensor: blk.16.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.16.ffn_down.scale
+[loader] loaded norm tensor: blk.16.ffn_sub_norm.weight
+[loader] loading tensor: blk.16.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.16.ffn_gate.scale
+[loader] loading tensor: blk.16.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.16.ffn_up.scale
+[loader] loaded norm tensor: blk.16.ffn_norm.weight
+[loader] loaded norm tensor: blk.16.attn_sub_norm.weight
+[loader] loading tensor: blk.16.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.16.attn_k.scale
+[loader] loading tensor: blk.16.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.16.attn_output.scale
+[loader] loading tensor: blk.16.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.16.attn_q.scale
+[loader] loading tensor: blk.16.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.16.attn_v.scale
+[loader] loaded norm tensor: blk.17.attn_norm.weight
+[loader] loading tensor: blk.17.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.17.ffn_down.scale
+[loader] loaded norm tensor: blk.17.ffn_sub_norm.weight
+[loader] loading tensor: blk.17.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.17.ffn_gate.scale
+[loader] loading tensor: blk.17.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.17.ffn_up.scale
+[loader] loaded norm tensor: blk.17.ffn_norm.weight
+[loader] loaded norm tensor: blk.17.attn_sub_norm.weight
+[loader] loading tensor: blk.17.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.17.attn_k.scale
+[loader] loading tensor: blk.17.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.17.attn_output.scale
+[loader] loading tensor: blk.17.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.17.attn_q.scale
+[loader] loading tensor: blk.17.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.17.attn_v.scale
+[loader] loaded norm tensor: blk.18.attn_norm.weight
+[loader] loading tensor: blk.18.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.18.ffn_down.scale
+[loader] loaded norm tensor: blk.18.ffn_sub_norm.weight
+[loader] loading tensor: blk.18.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.18.ffn_gate.scale
+[loader] loading tensor: blk.18.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.18.ffn_up.scale
+[loader] loaded norm tensor: blk.18.ffn_norm.weight
+[loader] loaded norm tensor: blk.18.attn_sub_norm.weight
+[loader] loading tensor: blk.18.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.18.attn_k.scale
+[loader] loading tensor: blk.18.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.18.attn_output.scale
+[loader] loading tensor: blk.18.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.18.attn_q.scale
+[loader] loading tensor: blk.18.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.18.attn_v.scale
+[loader] loaded norm tensor: blk.19.attn_norm.weight
+[loader] loading tensor: blk.19.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.19.ffn_down.scale
+[loader] loaded norm tensor: blk.19.ffn_sub_norm.weight
+[loader] loading tensor: blk.19.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.19.ffn_gate.scale
+[loader] loading tensor: blk.19.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.19.ffn_up.scale
+[loader] loaded norm tensor: blk.19.ffn_norm.weight
+[loader] loaded norm tensor: blk.19.attn_sub_norm.weight
+[loader] loading tensor: blk.19.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.19.attn_k.scale
+[loader] loading tensor: blk.19.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.19.attn_output.scale
+[loader] loading tensor: blk.19.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.19.attn_q.scale
+[loader] loading tensor: blk.19.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.19.attn_v.scale
+[loader] loaded norm tensor: blk.2.attn_norm.weight
+[loader] loading tensor: blk.2.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.2.ffn_down.scale
+[loader] loaded norm tensor: blk.2.ffn_sub_norm.weight
+[loader] loading tensor: blk.2.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.2.ffn_gate.scale
+[loader] loading tensor: blk.2.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.2.ffn_up.scale
+[loader] loaded norm tensor: blk.2.ffn_norm.weight
+[loader] loaded norm tensor: blk.2.attn_sub_norm.weight
+[loader] loading tensor: blk.2.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.2.attn_k.scale
+[loader] loading tensor: blk.2.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.2.attn_output.scale
+[loader] loading tensor: blk.2.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.2.attn_q.scale
+[loader] loading tensor: blk.2.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.2.attn_v.scale
+[loader] loaded norm tensor: blk.20.attn_norm.weight
+[loader] loading tensor: blk.20.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.20.ffn_down.scale
+[loader] loaded norm tensor: blk.20.ffn_sub_norm.weight
+[loader] loading tensor: blk.20.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.20.ffn_gate.scale
+[loader] loading tensor: blk.20.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.20.ffn_up.scale
+[loader] loaded norm tensor: blk.20.ffn_norm.weight
+[loader] loaded norm tensor: blk.20.attn_sub_norm.weight
+[loader] loading tensor: blk.20.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.20.attn_k.scale
+[loader] loading tensor: blk.20.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.20.attn_output.scale
+[loader] loading tensor: blk.20.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.20.attn_q.scale
+[loader] loading tensor: blk.20.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.20.attn_v.scale
+[loader] loaded norm tensor: blk.21.attn_norm.weight
+[loader] loading tensor: blk.21.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.21.ffn_down.scale
+[loader] loaded norm tensor: blk.21.ffn_sub_norm.weight
+[loader] loading tensor: blk.21.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.21.ffn_gate.scale
+[loader] loading tensor: blk.21.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.21.ffn_up.scale
+[loader] loaded norm tensor: blk.21.ffn_norm.weight
+[loader] loaded norm tensor: blk.21.attn_sub_norm.weight
+[loader] loading tensor: blk.21.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.21.attn_k.scale
+[loader] loading tensor: blk.21.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.21.attn_output.scale
+[loader] loading tensor: blk.21.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.21.attn_q.scale
+[loader] loading tensor: blk.21.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.21.attn_v.scale
+[loader] loaded norm tensor: blk.22.attn_norm.weight
+[loader] loading tensor: blk.22.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.22.ffn_down.scale
+[loader] loaded norm tensor: blk.22.ffn_sub_norm.weight
+[loader] loading tensor: blk.22.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.22.ffn_gate.scale
+[loader] loading tensor: blk.22.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.22.ffn_up.scale
+[loader] loaded norm tensor: blk.22.ffn_norm.weight
+[loader] loaded norm tensor: blk.22.attn_sub_norm.weight
+[loader] loading tensor: blk.22.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.22.attn_k.scale
+[loader] loading tensor: blk.22.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.22.attn_output.scale
+[loader] loading tensor: blk.22.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.22.attn_q.scale
+[loader] loading tensor: blk.22.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.22.attn_v.scale
+[loader] loaded norm tensor: blk.23.attn_norm.weight
+[loader] loading tensor: blk.23.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.23.ffn_down.scale
+[loader] loaded norm tensor: blk.23.ffn_sub_norm.weight
+[loader] loading tensor: blk.23.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.23.ffn_gate.scale
+[loader] loading tensor: blk.23.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.23.ffn_up.scale
+[loader] loaded norm tensor: blk.23.ffn_norm.weight
+[loader] loaded norm tensor: blk.23.attn_sub_norm.weight
+[loader] loading tensor: blk.23.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.23.attn_k.scale
+[loader] loading tensor: blk.23.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.23.attn_output.scale
+[loader] loading tensor: blk.23.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.23.attn_q.scale
+[loader] loading tensor: blk.23.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.23.attn_v.scale
+[loader] loaded norm tensor: blk.3.attn_norm.weight
+[loader] loading tensor: blk.3.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.3.ffn_down.scale
+[loader] loaded norm tensor: blk.3.ffn_sub_norm.weight
+[loader] loading tensor: blk.3.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.3.ffn_gate.scale
+[loader] loading tensor: blk.3.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.3.ffn_up.scale
+[loader] loaded norm tensor: blk.3.ffn_norm.weight
+[loader] loaded norm tensor: blk.3.attn_sub_norm.weight
+[loader] loading tensor: blk.3.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.3.attn_k.scale
+[loader] loading tensor: blk.3.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.3.attn_output.scale
+[loader] loading tensor: blk.3.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.3.attn_q.scale
+[loader] loading tensor: blk.3.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.3.attn_v.scale
+[loader] loaded norm tensor: blk.4.attn_norm.weight
+[loader] loading tensor: blk.4.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.4.ffn_down.scale
+[loader] loaded norm tensor: blk.4.ffn_sub_norm.weight
+[loader] loading tensor: blk.4.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.4.ffn_gate.scale
+[loader] loading tensor: blk.4.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.4.ffn_up.scale
+[loader] loaded norm tensor: blk.4.ffn_norm.weight
+[loader] loaded norm tensor: blk.4.attn_sub_norm.weight
+[loader] loading tensor: blk.4.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.4.attn_k.scale
+[loader] loading tensor: blk.4.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.4.attn_output.scale
+[loader] loading tensor: blk.4.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.4.attn_q.scale
+[loader] loading tensor: blk.4.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.4.attn_v.scale
+[loader] loaded norm tensor: blk.5.attn_norm.weight
+[loader] loading tensor: blk.5.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.5.ffn_down.scale
+[loader] loaded norm tensor: blk.5.ffn_sub_norm.weight
+[loader] loading tensor: blk.5.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.5.ffn_gate.scale
+[loader] loading tensor: blk.5.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.5.ffn_up.scale
+[loader] loaded norm tensor: blk.5.ffn_norm.weight
+[loader] loaded norm tensor: blk.5.attn_sub_norm.weight
+[loader] loading tensor: blk.5.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.5.attn_k.scale
+[loader] loading tensor: blk.5.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.5.attn_output.scale
+[loader] loading tensor: blk.5.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.5.attn_q.scale
+[loader] loading tensor: blk.5.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.5.attn_v.scale
+[loader] loaded norm tensor: blk.6.attn_norm.weight
+[loader] loading tensor: blk.6.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.6.ffn_down.scale
+[loader] loaded norm tensor: blk.6.ffn_sub_norm.weight
+[loader] loading tensor: blk.6.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.6.ffn_gate.scale
+[loader] loading tensor: blk.6.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.6.ffn_up.scale
+[loader] loaded norm tensor: blk.6.ffn_norm.weight
+[loader] loaded norm tensor: blk.6.attn_sub_norm.weight
+[loader] loading tensor: blk.6.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.6.attn_k.scale
+[loader] loading tensor: blk.6.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.6.attn_output.scale
+[loader] loading tensor: blk.6.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.6.attn_q.scale
+[loader] loading tensor: blk.6.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.6.attn_v.scale
+[loader] loaded norm tensor: blk.7.attn_norm.weight
+[loader] loading tensor: blk.7.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.7.ffn_down.scale
+[loader] loaded norm tensor: blk.7.ffn_sub_norm.weight
+[loader] loading tensor: blk.7.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.7.ffn_gate.scale
+[loader] loading tensor: blk.7.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.7.ffn_up.scale
+[loader] loaded norm tensor: blk.7.ffn_norm.weight
+[loader] loaded norm tensor: blk.7.attn_sub_norm.weight
+[loader] loading tensor: blk.7.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.7.attn_k.scale
+[loader] loading tensor: blk.7.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.7.attn_output.scale
+[loader] loading tensor: blk.7.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.7.attn_q.scale
+[loader] loading tensor: blk.7.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.7.attn_v.scale
+[loader] loaded norm tensor: blk.8.attn_norm.weight
+[loader] loading tensor: blk.8.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.8.ffn_down.scale
+[loader] loaded norm tensor: blk.8.ffn_sub_norm.weight
+[loader] loading tensor: blk.8.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.8.ffn_gate.scale
+[loader] loading tensor: blk.8.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.8.ffn_up.scale
+[loader] loaded norm tensor: blk.8.ffn_norm.weight
+[loader] loaded norm tensor: blk.8.attn_sub_norm.weight
+[loader] loading tensor: blk.8.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.8.attn_k.scale
+[loader] loading tensor: blk.8.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.8.attn_output.scale
+[loader] loading tensor: blk.8.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.8.attn_q.scale
+[loader] loading tensor: blk.8.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.8.attn_v.scale
+[loader] loaded norm tensor: blk.9.attn_norm.weight
+[loader] loading tensor: blk.9.ffn_down.weight (6684672 bytes, dims [4096, 1536])
+[loader] skipping non-ternary tensor: blk.9.ffn_down.scale
+[loader] loaded norm tensor: blk.9.ffn_sub_norm.weight
+[loader] loading tensor: blk.9.ffn_gate.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.9.ffn_gate.scale
+[loader] loading tensor: blk.9.ffn_up.weight (6684672 bytes, dims [1536, 4096])
+[loader] skipping non-ternary tensor: blk.9.ffn_up.scale
+[loader] loaded norm tensor: blk.9.ffn_norm.weight
+[loader] loaded norm tensor: blk.9.attn_sub_norm.weight
+[loader] loading tensor: blk.9.attn_k.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.9.attn_k.scale
+[loader] loading tensor: blk.9.attn_output.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.9.attn_output.scale
+[loader] loading tensor: blk.9.attn_q.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.9.attn_q.scale
+[loader] loading tensor: blk.9.attn_v.weight (2506752 bytes, dims [1536, 1536])
+[loader] skipping non-ternary tensor: blk.9.attn_v.scale
+[loader] loaded norm tensor: output_norm.weight
+[loader] loaded 168 ternary tensors, 97 norm tensors
+[engine] model loaded: 24 layers, 16 heads, embd=1536
+[engine] PagePool: 1024 pages × 49152 bytes/page
+[engine] Rayon pool: 3 threads (physical cores)
+[+] Engine loaded successfully!
+
+[USER] What is the capital of France?
+[AEGIS] 
+
+[+] Generation complete.

@@ -112,7 +112,7 @@ impl GgufParser {
 
     /// Stream a specific tensor's raw bytes into caller-provided buffer.
     /// Returns immediately if buffer too small. Zero-copy into your mmap region.
-    pub fn read_tensor_into(
+    pub unsafe fn read_tensor_into(
         &mut self,
         tensor_idx: usize,
         dest: *mut u8,

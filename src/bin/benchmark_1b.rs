@@ -31,7 +31,7 @@ fn main() {
     let available_bytes = mmap.len().min(required_bytes);
     
     // Create a zero-copy slice of the payload
-    let tensor_payload = &mmap[0..available_bytes];
+    let _tensor_payload = &mmap[0..available_bytes];
     
     // Generate an input activation vector representing a 2048-dimensional context state
     let cols = 2048;

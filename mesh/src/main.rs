@@ -171,6 +171,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut stdin = io::BufReader::new(io::stdin()).lines();
 
     let mut orchestrator = SwarmOrchestrator::new();
+    
+    // --- KESSLER GOD-MODE TCP BRIDGE ---
+    let (bridge_tx, mut bridge_rx) = tokio::sync::mpsc::unbounded_channel::<SwarmMessage>();
+    tokio::spawn(async move {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:8080").await.expect("Failed to bind port 8080");
+        println!("[*] CEO Node: Listening for Kessler SwarmMessages on 127.0.0.1:8080...");
+        loop {
+            if let Ok((mut socket, _)) = listener.accept().await {
+                let tx_clone = bridge_tx.clone();
+                tokio::spawn(async move {
+                    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+                    let mut buf = [0; 1024];
+                    if let Ok(n) = socket.read(&mut buf).await {
+                        if n > 0 {
+                            if let Ok(msg) = serde_json::from_slice::<SwarmMessage>(&buf[..n]) {
+                                println!("[BRIDGE] Incoming Kessler Vector: {:?}", msg);
+                                let _ = tx_clone.send(msg);
+                            }
+                        }
+                    }
+                    // Simulate Aegis returning a high-confidence Alpha Signal
+                    let resp = r#"{"AlphaSignal":{"ticker":"NAS100","confidence":0.98,"action":"SHORT"}}"#;
+                    let _ = socket.write_all(resp.as_bytes()).await;
+                });
+            }
+        }
+    });
 
     loop {
         select! {
@@ -203,6 +230,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     } else {
                         println!("[+] Signal successfully broadcast to the global mesh.");
                     }
+                }
+            }
+
+            // Broadcast incoming Kessler God-Mode bridge messages to the swarm
+            Some(msg) = bridge_rx.recv() => {
+                let json = serde_json::to_vec(&msg).unwrap();
+                if let Err(e) = swarm.behaviour_mut().gossipsub.publish(global_topic.clone(), json) {
+                    println!("[!] Failed to broadcast Kessler inference request to swarm: {e:?}");
+                } else {
+                    println!("[+] Kessler task successfully routed to Aegis Mesh.");
                 }
             }
 

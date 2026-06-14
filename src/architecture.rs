@@ -1,6 +1,4 @@
 use std::alloc::{alloc, dealloc, Layout};
-use std::ptr;
-use std::f32::consts::PI;
 
 /// A custom allocator that bypasses standard OS heap allocation.
 /// It forces the memory to align strictly with the CPU's L3 Cache boundaries.

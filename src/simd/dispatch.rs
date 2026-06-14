@@ -36,7 +36,7 @@ pub struct KernelVtable {
 static VTABLE: OnceLock<KernelVtable> = OnceLock::new();
 
 pub fn vtable() -> &'static KernelVtable {
-    VTABLE.get_or_init(|| detect_best_kernel())
+    VTABLE.get_or_init(detect_best_kernel)
 }
 
 fn detect_best_kernel() -> KernelVtable {

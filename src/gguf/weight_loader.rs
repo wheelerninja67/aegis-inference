@@ -105,7 +105,7 @@ pub fn q8_blocks_to_ternary_bitmasks(
 ) -> BitmaskTensor {
     let cols = (cols_raw + 63) & !63;
     let mask_words = rows * (cols / 64);
-    let n_blocks_total = (rows * cols_raw + Q8_BLOCK_SIZE - 1) / Q8_BLOCK_SIZE;
+    let n_blocks_total = (rows * cols_raw).div_ceil(Q8_BLOCK_SIZE);
 
     assert_eq!(
         raw.len(), n_blocks_total * Q8_BLOCK_BYTES,
@@ -237,7 +237,7 @@ impl AegisModel {
 
             if name == "token_embd.weight" {
                 let byte_size = parser.tensor_byte_size(idx);
-                parser.read_tensor_into(idx, scratch.as_mut_ptr(), byte_size)?;
+                unsafe { parser.read_tensor_into(idx, scratch.as_mut_ptr(), byte_size)?; }
                 
                 let (rows, cols_raw) = match info.dimensions.as_slice() {
                     [c, r]    => (*r as usize, *c as usize),
@@ -247,7 +247,7 @@ impl AegisModel {
                 };
                 
                 if info.ggml_type == 8 {
-                    let n_blocks_total = (rows * cols_raw + Q8_BLOCK_SIZE - 1) / Q8_BLOCK_SIZE;
+                    let n_blocks_total = (rows * cols_raw).div_ceil(Q8_BLOCK_SIZE);
                     let blocks: &[Q8Block] = unsafe {
                         std::slice::from_raw_parts(scratch.as_ptr() as *const Q8Block, n_blocks_total)
                     };
@@ -271,7 +271,7 @@ impl AegisModel {
 
             if name.contains("norm") {
                 let byte_size = parser.tensor_byte_size(idx);
-                parser.read_tensor_into(idx, scratch.as_mut_ptr(), byte_size)?;
+                unsafe { parser.read_tensor_into(idx, scratch.as_mut_ptr(), byte_size)?; }
                 
                 let num_elements = byte_size / 4;
                 let mut norm_vec = Vec::with_capacity(num_elements);
@@ -304,7 +304,7 @@ impl AegisModel {
             let byte_size = parser.tensor_byte_size(idx);
             eprintln!("[loader] loading tensor: {} ({} bytes, dims {:?})", name, byte_size, info.dimensions);
 
-            parser.read_tensor_into(idx, scratch.as_mut_ptr(), byte_size)?;
+            unsafe { parser.read_tensor_into(idx, scratch.as_mut_ptr(), byte_size)?; }
 
             let (rows, cols_raw) = match info.dimensions.as_slice() {
                 [c, r]    => (*r as usize, *c as usize),

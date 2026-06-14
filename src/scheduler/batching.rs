@@ -73,7 +73,7 @@ impl Scheduler {
     pub fn promote_waiting(&mut self) {
         while self.active_seqs.len() < self.max_batch_size && !self.waiting_seqs.is_empty() {
             let seq = &self.waiting_seqs[0];
-            let required_pages = (seq.num_tokens as usize + PAGE_TOKENS - 1) / PAGE_TOKENS;
+            let required_pages = (seq.num_tokens as usize).div_ceil(PAGE_TOKENS);
             let prefetch_pages = required_pages + 1;
 
             let mut mapped_pages = Vec::with_capacity(prefetch_pages);
@@ -122,7 +122,7 @@ impl Scheduler {
                 }
                 finished.push(seq.seq_id);
             } else {
-                let required_pages = (seq.num_tokens as usize + 1 + PAGE_TOKENS - 1) / PAGE_TOKENS;
+                let required_pages = (seq.num_tokens as usize + 1).div_ceil(PAGE_TOKENS);
                 if required_pages > seq.physical_pages.len() {
                     if let Some(p) = self.page_pool.alloc_page() {
                         seq.physical_pages.push(p);

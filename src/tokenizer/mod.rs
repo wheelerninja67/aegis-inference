@@ -64,11 +64,10 @@ impl AegisTokenizer {
         for (id, token) in tokens.iter().enumerate() {
             vocab.insert(token.clone(), id as u32);
 
-            if token_types[id] == 6 {
-                if let Some(byte_val) = parse_byte_token(token) {
+            if token_types[id] == 6
+                && let Some(byte_val) = parse_byte_token(token) {
                     byte_fallback_map.insert(byte_val, token.clone());
                 }
-            }
         }
 
         let merges = reconstruct_merges_from_scores(&tokens, &scores);

@@ -57,7 +57,7 @@ impl PagePool {
         let slab = unsafe { alloc_zeroed(layout) as *mut i8 };
         assert!(!slab.is_null(), "page pool allocation failed");
 
-        let bitmap_words = (total_pages + 63) / 64;
+        let bitmap_words = total_pages.div_ceil(64);
         let mut free_bitmap: Vec<AtomicU64> = Vec::with_capacity(bitmap_words);
         
         // Mark all pages as free (bit = 1)
